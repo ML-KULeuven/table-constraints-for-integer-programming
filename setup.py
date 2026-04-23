@@ -55,6 +55,7 @@ setup(
         'numpy>=1.5',
         'setuptools',
         'packaging', # to check solver versions
+        "scalene", "tqdm", "humanfriendly", "filelock"
     ],
     extras_require={
         # Solvers

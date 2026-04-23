@@ -18,7 +18,6 @@ from cpmpy.solvers.gurobi import CPM_gurobi, Feature
 from cpmpy.expressions.variables import NegBoolView, _BoolVarImpl
 from cpmpy.transformations.linearize import only_positive_bv
 
-from line_profiler import profile as line_profile
 
 CHECKER_TIME_LIMIT = None
 
@@ -248,7 +247,6 @@ class TableData:
                     check=check,
                 )
 
-    @line_profile
     def choose(self, choices, R, A_enc, single_choice=False, heuristic=Heuristic.GREEDY):
         T_enc = self.T_enc
         parts = self.parts
@@ -390,7 +388,6 @@ class TableData:
             is_pos = np.argmax(choice) < self.cols()
             return rshift(choice, self.cols()) if is_pos else lshift(choice, self.cols())
 
-    @line_profile
     def initial(self, A_enc, frm=None, is_integer=None):
         """The `explain_frac2` alg."""
         T_enc = self.T_enc
@@ -672,7 +669,6 @@ class TableData:
             self.show_cut(X, C_enc, k, A_enc=A_enc, verbosity=1, frm=frm)
         return X, C_enc, k
 
-    @line_profile
     def explain(self, A_enc, frm=None, is_integer=None):
         T_enc = self.T_enc
         parts = self.parts
@@ -724,7 +720,6 @@ class TableData:
         else:
             return X, C_enc, k
 
-    @line_profile
     def gencoverlift(self, S, C_enc, k, A_enc, heuristic=Coverlift.INPUT, frm=None):
         solver = self.solver
         T_enc, parts = self.T_enc, self.parts
@@ -1360,7 +1355,6 @@ class CPM_lazy_gurobi(CPM_gurobi):
             b = lambda: True
         return a() if self.env.get("variant", 0) == 0 else b()
 
-    @line_profile
     def _explain_assignment(self, frm=None):
         # If fully integer, we can check if the tables are feasible yet
         if self.env["verbosity"]:
@@ -1519,7 +1513,7 @@ class CPM_lazy_gurobi(CPM_gurobi):
                             sol = min(self.env["remain"].tolist())
                         else:
                             assert self.env["counterexamples"], (
-                                f"Choose from\n{'\n'.join(f'{i}: {c}' for i, c in enumerate(self.env['remain']))}"
+                                    f"Choose from: {' '.join(f'{i}: {c}' for i, c in enumerate(self.env['remain']))}"
                             )
                             sol = self.env["remain"][self.env["counterexamples"].pop()]
                     else:

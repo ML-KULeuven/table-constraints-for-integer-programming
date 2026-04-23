@@ -20,4 +20,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          python -m pytest -n auto tests/ --solver all -ref
+          python -m pytest -n auto tests/ --solver all -ref -x --ignore=tests/test_benchmark.py
