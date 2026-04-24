@@ -1,8 +1,8 @@
 # Table Constraints for Integer Programming (CP'26)
 
-Authors: Hendrik 'Henk' Bierlee, Wouter Piesens, Tias Guns, and Peter Stuckey
-Venue: CP'26
-Corresponding author's email: henk.bierlee@kuleuven.be (or bierlee.henk@gmail.com)
+- Authors: Hendrik 'Henk' Bierlee, Wouter Piesens, Tias Guns, and Peter Stuckey
+- Venue: CP'26
+- Corresponding author's email: henk.bierlee@kuleuven.be (or bierlee.henk@gmail.com)
 
 With this repository, you can reproduce the results of the paper by following these steps:
 
