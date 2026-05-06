@@ -23,8 +23,9 @@ Optional Arguments
 --plot, -o : str, optional
     Path to save the generated plot image (e.g., "plot.png").
 
---show : bool, optional
-    Display plots interactively using matplotlib's interactive backend.
+--show-cactus : str [str], optional
+    Filter aliases shown in cactus plots by glob patterns (substring match).
+    If given without args, shows all aliases.
 
 --small : int, optional
     Threshold for filtering instances by largest table size (default: 25). Instances with max rows <= this value are excluded.
@@ -56,15 +57,8 @@ import re
 import pandas as pd
 import numpy as np
 
-# Set interactive backend before importing pyplot
 import matplotlib
-try:
-    matplotlib.use('TkAgg')
-except:
-    try:
-        matplotlib.use('Qt5Agg')
-    except:
-        pass  # Use default backend
+matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -825,8 +819,6 @@ def main():
     parser.add_argument('files', nargs='+', help='List of CSV files or directories to analyze')
     parser.add_argument('--time-limit', type=float, default=None, help='Maximum time limit in seconds to show on x-axis')
     parser.add_argument('--plot', '-p', type=pathlib.Path, default=None, help='Path to save the plot image (e.g., plot.png)')
-    parser.add_argument('--show', nargs='*', choices=['cactus', 'scatter'], default=None,
-                        help='Display plots interactively. Specify which plots: cactus, scatter, or both. Use --show without args to show all.')
     parser.add_argument('--sync', type=pathlib.Path, default=None, help='Location to sync files from')
     parser.add_argument('--save', type=pathlib.Path, default=None, help='Location to save post-processed full csv to')
     parser.add_argument('--tex', type=pathlib.Path, default=None, help='Path to save LaTeX tables generated from the analysis')
@@ -842,12 +834,14 @@ def main():
                         help='Compare solvers: --compare A (compare all vs A), --compare A B (compare A vs B). Creates scatter and correlation plots with A as baseline.')
     parser.add_argument('--metric', type=str, default='t_solv_p2',
                         help='Metric to use for scatter/correlation analysis (default: t_solv_p2). Options: t_solv_p2 (solve time), t_post_p2 (posting time), t_totl_p2 (total time). Requires --time-limit.')
+    parser.add_argument('--show-cactus', type=str, nargs='*', default=None,
+                        help='Filter aliases shown in cactus plots by glob patterns (substring match). If given without args, shows all.')
     parser.add_argument('--paper', action='store_true', default=False,
                         help='Use larger font sizes (2x) in plots suitable for papers/publications')
     args = parser.parse_args()
     analyze(**vars(args))
 
-def analyze(files=[], time_limit=None, plot=None, show=None, sync=None, no_errors=False, save=False, intermediate=False, small=None, glob_alias=None, exclude_alias=None, glob_instance=None, tex=None, sort_legend='alpha', compare=None, metric='t_solv_p2', paper=False):
+def analyze(files=[], time_limit=None, plot=None, show_cactus=None, sync=None, no_errors=False, save=False, intermediate=False, small=None, glob_alias=None, exclude_alias=None, glob_instance=None, tex=None, sort_legend='alpha', compare=None, metric='t_solv_p2', paper=False, **kwargs):
 
     # Set font sizes for publication-ready plots
     if paper:
@@ -1351,9 +1345,6 @@ def analyze(files=[], time_limit=None, plot=None, show=None, sync=None, no_error
                                         plt.close(fig)
 
 
-    # Collect all scatter plots for show logic
-    fig_scatters = []
-
     # Compute global inst_metric range for consistent colorbar across plots (only solved instances)
     # inst_metric_col = "rows"
     # inst_metric_col = "min"
@@ -1661,27 +1652,20 @@ def analyze(files=[], time_limit=None, plot=None, show=None, sync=None, no_error
                 'metadata': metadata_stats,
             })
 
-        # Determine which plots to generate and show
-        show_cactus = False
-        show_scatter = False
-        if show is not None:
-            # If show is an empty list, show all plots
-            if len(show) == 0:
-                show_cactus = True
-                show_scatter = True
-            else:
-                show_cactus = 'cactus' in show
-                show_scatter = 'scatter' in show
-
-        # Generate plots based on plot argument or show argument
-        generate_cactus = plot is not None or show_cactus
+        # Generate cactus plot if saving or --show-cactus is provided
+        generate_cactus = plot is not None or show_cactus is not None
 
         fig_cactus = None
 
         if generate_cactus:
+            # Filter aliases for cactus plot if --show-cactus is provided with patterns
+            cactus_df = groups.reset_index()
+            if show_cactus is not None and len(show_cactus) > 0:
+                cactus_df = cactus_df[cactus_df['alias'].map(lambda a: any(pat in a for pat in show_cactus))].copy()
+
             # Generate performance/cactus plot
             fig_cactus = xcsp3_plot(
-                groups.reset_index(),
+                cactus_df,
                 time_limit,
                 filter_by="feasible",
                 sort_legend=sort_legend,
@@ -1738,7 +1722,6 @@ def analyze(files=[], time_limit=None, plot=None, show=None, sync=None, no_error
                     inst_metric_range=inst_metric_range,
                     paper=paper,
                 )
-                fig_scatters.append(fig_scatter)
 
                 if plot:
                     # Include both solver names in filename for clarity
@@ -1854,15 +1837,6 @@ def analyze(files=[], time_limit=None, plot=None, show=None, sync=None, no_error
     #     if pd.notna(row['checker_result']) and not row['checker_result'].split("\n")[-2].startswith("OK"):
     #         print(f"Exception: {row['checker_result']}")
 
-    # Close figures we don't want to show before calling plt.show()
-    if show is not None:
-        if fig_cactus is not None and not show_cactus:
-            plt.close(fig_cactus)
-        # Close scatter plots if not showing them
-        if not show_scatter:
-            for fig in fig_scatters:
-                plt.close(fig)
-        plt.show()
 
 
 

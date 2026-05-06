@@ -62,6 +62,7 @@ ARGS+=(--paper)
 # ARGS+=(--glob-alias bool gleb all coverlift_input frac none mdd-reduce mdd-noreduce-dom-incr ortools cutoff)
 #
 ARGS+=(--exclude-alias mdd-reduce-dom-decr mdd-reduce-fiedler ortools noreduce bidirectional shrink negatives greedy 500)
+ARGS+=(--show-cactus hybrid_2000 bool gleb hybrid_0 mdd-reduce-dom)
 
 # ARGS+=(--no-errors)
 # ARGS+=(--tex analysis)
