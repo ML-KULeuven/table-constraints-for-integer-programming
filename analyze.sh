@@ -77,3 +77,8 @@ python cpmpy/tools/xcsp3/analyze.py "${DIRS[@]}"  --plot analysis --tex analysis
 cp -r analysis ~/utm/
 rm -f ~/utm/analysis/*.png ~/utm/analysis/results.csv
 ls ~/utm/analysis
+
+
+cp -r analysis cp-cuts/overleaf/68c97465ad8c821eedd378d5/
+rm -f cp-cuts/overleaf/68c97465ad8c821eedd378d5/analysis/*.png cp-cuts/overleaf/68c97465ad8c821eedd378d5/analysis/results.csv
+ls cp-cuts/overleaf/68c97465ad8c821eedd378d5/analysis

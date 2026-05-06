@@ -95,6 +95,31 @@ FIELDNAMES = [
 
 METADATA_COLS = ["method", "area", "rows", "min", "max", "count", "mean", "median", "stdev"]
 
+# Mapping from alias patterns to LaTeX macros (used in both plots and tables)
+ALIAS_TO_LATEX = {
+    'base_gurobi-bool': r'\baseBool',
+    'base_gurobi-gleb': r'\baseGleb',
+    'base_gurobi-mdd-reduce-dom-incr-nocombined': r'\baseMddDomIncr',
+    'base_gurobi-mdd-reduce-input-nocombined': r'\baseMddInput',
+    'lazy_gurobi-none': r'\lazyGenerate',
+    'lazy_gurobi-shrink': r'\lazyShrink',
+    'lazy_gurobi-fractional': r'\lazyFractional',
+    'lazy_gurobi-negatives': r'\lazyNegatives',
+    'lazy_gurobi-coverlift_com_max': r'\lazyCutlift',
+    'lazy_gurobi-hybrid_0': r'\lazyAll',
+    'lazy_gurobi-hybrid_500': r'\lazyCutoff (500)',
+    'lazy_gurobi-hybrid_1000': r'\lazyCutoff (1000)',
+    'lazy_gurobi-hybrid_2000': r'\lazyCutoff (2000)',
+    'lazy_gurobi-hybrid_3000': r'\lazyCutoff (3000)',
+}
+
+
+def alias_to_label(alias):
+    """Convert an alias to a display label using ALIAS_TO_LATEX, falling back to the raw alias."""
+    if alias in ALIAS_TO_LATEX:
+        return ALIAS_TO_LATEX[alias]
+    return alias
+
 
 
 def _extract_cost(solution_str):
@@ -163,7 +188,8 @@ def xcsp3_plot(df, time_limit=None, metric="time_solve", filter_by="solved", sol
         y = [0] + list(range(1, len(solver_data) + 1))
         
         # Plot the performance curve
-        plt.plot(x, y, label=f"{solver} ({len(solver_data)})", linewidth=2.5)
+        label = alias_to_label(solver)
+        plt.plot(x, y, label=f"{label} ({len(solver_data)})", linewidth=2.5)
     
     # Set plot properties
     plt.xlabel('Time [seconds]')
@@ -1362,24 +1388,6 @@ def analyze(files=[], time_limit=None, plot=None, show_cactus=None, sync=None, n
             n_instances = len((groups["problem"] + "-" + groups["instance"]).unique())
 
             track = track[:3]
-
-            # Mapping from alias patterns to LaTeX macros
-            ALIAS_TO_LATEX = {
-                'base_gurobi-bool': r'\baseBool',
-                'base_gurobi-gleb': r'\baseGleb',
-                'base_gurobi-mdd-reduce-dom-incr-nocombined': r'\baseMddDomIncr',
-                'base_gurobi-mdd-reduce-input-nocombined': r'\baseMddInput',
-                'lazy_gurobi-none': r'\lazyGenerate',
-                'lazy_gurobi-shrink': r'\lazyShrink',
-                'lazy_gurobi-fractional': r'\lazyFractional',
-                'lazy_gurobi-negatives': r'\lazyNegatives',
-                'lazy_gurobi-coverlift_com_max': r'\lazyCutlift',
-                'lazy_gurobi-hybrid_0': r'\lazyAll',
-                'lazy_gurobi-hybrid_500': r'\lazyCutoff (500)',
-                'lazy_gurobi-hybrid_1000': r'\lazyCutoff (1000)',
-                'lazy_gurobi-hybrid_2000': r'\lazyCutoff (2000)',
-                'lazy_gurobi-hybrid_3000': r'\lazyCutoff (3000)',
-            }
 
             def rename_idx(x):
                 # Check for exact match first
