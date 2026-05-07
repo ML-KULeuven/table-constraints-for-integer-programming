@@ -63,6 +63,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib.markers import MarkerStyle
+import seaborn as sns
+
+# Set colorblind-friendly palette as default color cycle
+sns.set_palette("colorblind")
 
 # Different marker shapes for visual distinction (use all filled markers from matplotlib)
 marker_shapes = list(MarkerStyle.filled_markers)
