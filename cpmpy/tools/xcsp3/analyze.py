@@ -125,6 +125,66 @@ def alias_to_label(alias):
     return alias
 
 
+def _get_base_suborder(alias):
+    alias_lower = alias.lower()
+    if 'gleb' in alias_lower:
+        return 0
+    elif 'bool' in alias_lower:
+        return 1
+    elif 'mddinput' in alias_lower or 'mdd-input' in alias_lower:
+        return 2
+    elif 'mdddomincr' in alias_lower or 'mdd-dom-incr' in alias_lower or 'mdd-reduce-dom-incr' in alias_lower:
+        return 3
+    elif 'mdd' in alias_lower:
+        return 4
+    else:
+        raise Exception(alias)
+
+
+def _get_lazy_suborder(alias):
+    alias_lower = alias.lower()
+    if 'generate' in alias_lower:
+        return 0
+    elif 'shrink' in alias_lower:
+        return 1
+    elif 'fractional' in alias_lower or 'frac' in alias_lower:
+        return 2
+    elif 'coverlift' in alias_lower or 'cutlift' in alias_lower:
+        return 3
+    elif 'negatives' in alias_lower:
+        return 4
+    elif 'hybrid' in alias_lower or 'all' in alias_lower:
+        return 5
+    else:
+        raise Exception(alias)
+
+
+def _get_cutoff_value(alias):
+    match = re.search(r'\((\d+)\)', alias)
+    if match:
+        return int(match.group(1))
+    match = re.search(r'cutoff[_-]?(\d+)', alias.lower())
+    return int(match.group(1)) if match else 0
+
+
+def get_approach_order(alias):
+    """Return a sort key tuple for ordering aliases: base, lazy, cutoff, ortools, other."""
+    alias_lower = alias.lower()
+    cutoff_val = _get_cutoff_value(alias)
+    is_cutoff = 'cutoff' in alias_lower
+    match alias_lower:
+        case s if 'base' in s:
+            return (0, _get_base_suborder(alias), alias)
+        case s if is_cutoff and cutoff_val > 0:
+            return (2, cutoff_val, alias)
+        case s if 'lazy' in s:
+            return (1, _get_lazy_suborder(alias), alias)
+        case s if 'ortools' in s:
+            return (3, 0, alias)
+        case _:
+            return (4, 0, alias)
+
+
 
 def _extract_cost(solution_str):
     """
@@ -170,8 +230,8 @@ def xcsp3_plot(df, time_limit=None, metric="time_solve", filter_by="solved", sol
         # Sort by number of instances solved (descending)
         solvers_sorted = solver_counts.sort_values(ascending=False).index.tolist()
     else:  # 'alpha' or default
-        # Sort lexicographically
-        solvers_sorted = sorted(solvers)
+        # Sort by approach order (base, lazy, cutoff, ortools), same as tables
+        solvers_sorted = sorted(solvers, key=get_approach_order)
 
     # Create figure
     fig = plt.figure(figsize=(10, 6))
@@ -1516,67 +1576,6 @@ def analyze(files=[], time_limit=None, plot=None, show_cactus=None, sync=None, n
                     return f"{x:.1f}"
                 tex_df_formatted[col] = [format_cons_cuts(tex_df.loc[idx, col], idx) for idx in tex_df.index]
 
-            # Sort by approach type: base first, then lazy, then cutoff
-            # Within base section, order is: gleb, base, mdd-input, mdd-dom-incr
-            # Within lazy section, order is: none, shrink, fractional, coverlift
-            def get_base_suborder(alias):
-                alias_lower = alias.lower()
-                if 'gleb' in alias_lower:
-                    return 0
-                elif 'bool' in alias_lower:
-                    return 1
-                elif 'mddinput' in alias_lower or 'mdd-input' in alias_lower:
-                    return 2
-                elif 'mdddomincr' in alias_lower or 'mdd-dom-incr' in alias_lower or 'mdd-reduce-dom-incr' in alias_lower:
-                    return 3
-                elif 'mdd' in alias_lower:
-                    return 4  # other mdd variants
-                else:
-                    raise Exception
-
-            def get_lazy_suborder(alias):
-                alias_lower = alias.lower()
-                if 'generate' in alias_lower:
-                    return 0
-                elif 'shrink' in alias_lower:
-                    return 1
-                elif 'fractional' in alias_lower or 'frac' in alias_lower:
-                    return 2
-                elif 'coverlift' in alias_lower or 'cutlift' in alias_lower:
-                    return 3
-                elif 'negatives' in alias_lower:
-                    return 4
-                elif 'hybrid' in alias_lower or 'all' in alias_lower:
-                    return 5  # lazyBest comes last in lazy section
-                else:
-                    raise Exception(alias_lower)
-
-            def get_cutoff_value(alias):
-                # Extract numeric cutoff value from alias
-                # Handle LaTeX format like "\lazyCutoff (500)"
-                match = re.search(r'\((\d+)\)', alias)
-                if match:
-                    return int(match.group(1))
-                # Handle original format like "cutoff_500"
-                match = re.search(r'cutoff[_-]?(\d+)', alias.lower())
-                return int(match.group(1)) if match else 0
-
-            def get_approach_order(alias):
-                alias_lower = alias.lower()
-                # Check for cutoff with value > 0 (separate section)
-                cutoff_val = get_cutoff_value(alias)
-                is_cutoff = 'cutoff' in alias_lower
-                match alias_lower:
-                    case s if 'base' in s:
-                        return (0, get_base_suborder(alias), alias)
-                    case s if is_cutoff and cutoff_val > 0:
-                        return (2, cutoff_val, alias)
-                    case s if 'lazy' in s:
-                        return (1, get_lazy_suborder(alias), alias)
-                    case s if 'ortools' in s:
-                        return (3, 0, alias)
-                    case _:
-                        return (4, 0, alias)
             tex_df_formatted = tex_df_formatted.iloc[sorted(range(len(tex_df_formatted)),
                                                            key=lambda i: get_approach_order(tex_df_formatted.index[i]))]
 
