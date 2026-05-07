@@ -868,14 +868,23 @@ def main():
                         help='Filter aliases shown in cactus plots by glob patterns (substring match). If given without args, shows all.')
     parser.add_argument('--paper', action='store_true', default=False,
                         help='Use larger font sizes (2x) in plots suitable for papers/publications')
+    parser.add_argument('--prelude', type=pathlib.Path, default=None,
+                        help='Path to a LaTeX prelude file (e.g. prelude.tex) to use for rendering labels in plots')
     args = parser.parse_args()
     analyze(**vars(args))
 
-def analyze(files=[], time_limit=None, plot=None, show_cactus=None, sync=None, no_errors=False, save=False, intermediate=False, small=None, glob_alias=None, exclude_alias=None, glob_instance=None, tex=None, sort_legend='alpha', compare=None, metric='t_solv_p2', paper=False, **kwargs):
+def analyze(files=[], time_limit=None, plot=None, show_cactus=None, sync=None, no_errors=False, save=False, intermediate=False, small=None, glob_alias=None, exclude_alias=None, glob_instance=None, tex=None, sort_legend='alpha', compare=None, metric='t_solv_p2', paper=False, prelude=None, **kwargs):
 
-    # Set font sizes for publication-ready plots
+    # Set font sizes and LaTeX rendering for publication-ready plots
     if paper:
+        preamble = '\\usepackage{amsmath}\n\\usepackage{xspace}\n'
+        if prelude is not None:
+            preamble += f'\\input{{{prelude.resolve()}}}'
+
         plt.rcParams.update({
+            'text.usetex': True,
+            'font.family': 'serif',
+            'text.latex.preamble': preamble,
             'font.size': 20,
             'axes.titlesize': 24,
             'axes.labelsize': 20,

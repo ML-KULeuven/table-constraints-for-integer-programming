@@ -56,6 +56,7 @@ ARGS+=(--compare base_gurobi-mdd-reduce-dom-incr hybrid_0)
 ARGS+=(--save analysis/results.csv)
 
 ARGS+=(--paper)
+ARGS+=(--prelude cp-cuts/overleaf/68c97465ad8c821eedd378d5/prelude.tex)
 
 # ARGS+=(--glob-alias coverlift none)
 
