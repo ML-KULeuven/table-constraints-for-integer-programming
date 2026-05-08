@@ -1,0 +1,1467 @@
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{xcolor}
+\usepackage[all]{xy}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newcounter{excount}
+\newenvironment{example}{\begin{quote}\refstepcounter{excount}\textbf{Example~\arabic{excount}:}}{\hfill$\qed$\end{quote}}
+
+\newcommand{\question}[1]{\textcolor{purple}{\textsc{Q:} #1}}
+\newcommand{\pjs}[1]{\textcolor{blue}{\textsc{Pjs:} #1}}
+\newcommand{\hb}[1]{\colorPars{red}{{\textsc{Hb:} #1}}}
+
+\newcommand{\colorPars}[2]{{\leavevmode\color{#1}[#2]}}
+\newcommand{\ignore}[1]{}
+
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\brackets}[1]{\ensuremath{[\![#1]\!]}}
+
+\usepackage[nopostdot,nogroupskip,nonumberlist]{glossaries}
+\glsdisablehyper
+% acronyms
+\newacronym{sat}{SAT}{\emph{Boolean Satisfiability}}
+\newacronym{maxSat}{maxSAT}{\emph{Maximum Satisfiability}}
+\newacronym{pb}{PB}{\emph{Pseudo-Boolean}}
+\newacronym{cp}{CP}{\emph{Constraint Programming}}
+% \newacronym{il}{IL}{\emph{Integer Linear}}
+\newacronym{csp}{CSP}{\emph{Constraint Satisfaction Problem}}
+\newacronym{mip}{MIP}{\emph{Mixed Integer Programming}}
+
+
+\title{\red{RESEARCH NOTE, see main.tex for paper} Table Constraints as Cut Generators}
+\author{Hendrik Bierlee \and Tias Guns \and Peter J. Stuckey}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Table constraints are heavily used in \gls{cp} models since they allow the expression of arbitrary finite relations.
+\gls{mip} solvers are generally effective at solving \gls{cp} models after linearization.
+However, large table constraints require a large number of linear constraints, which are slow to post and solve.
+Furthermore, their linear relaxation is weak.
+In this paper we show how we can use a Logic-based Benders Decomposition approach to incrementally add large table constraints to \gls{mip} models to improve solving behaviour for \gls{cp} instances with table constraints.
+\end{abstract}
+
+% Table constraints are easy to decompose to \gls{sat} models, and have very good solving behaviour, but if we have a large table that is used many times, then the SAT encoding of each instance can be overwhelming.
+\section{Introduction}
+
+
+\section{Preliminaries}
+
+A table $T$ with $m$ rows and $k$ columns 
+is a matrix of integer values $T_{ri}, r \in 1..m, i \in 1..k$.
+A \emph{binary} table $T$ is a table where $T_{ri} \in \{0,1\}$.
+Define ${T}_i$ to be $i^{th}$ column of $T$,
+If $T$ is a binary table we will abuse notation and
+treat this as a set of indices $T_i \equiv \{ r ~|~ r \in 1..m, T_{ri} = 1\}$.
+Define $\hat{T}_r$ to be the $r^{th}$ row of $T$.
+Again if $T$ is a binary table we will abuse notation
+and treat this as a set of indices of columns,
+$\hat{T}_r = \{ i ~|~ i \in 1..n, T_{ri} = 1\}$.
+Similarly for a vector $\hat{x}$ of 01 values we will treat it as a set of indices of columns.
+
+
+Consider an integer table constraint $\texttt{table}(\hat{x},T)$, we can expand this into an equivalent Boolean table constraint $\texttt{table}( [ \brackets{x_i = j} ~|~ i \in 1..k, j \in D(x_i)], TB)$ 
+where $TB$ is defined as 
+$\hat{TB}_r = [ \brackets{T_{ri} = j} ~|~ i \in 1..k, j \in D(x_i)]$. 
+
+
+We consider a Boolean table $T$ 
+with columns $C = 1..n$ and $m$ rows.
+The table constraint is \texttt{table}($\hat{b} = [b_1, b_2, \ldots, b_n], T)$
+So each column $i \in C$ represents the truth value of the variable $b_i$ it constrains.
+We also assume some grouping constraints. The columns are partitioned into sets where exactly one Boolean of each set must hold.  We represent this as $p(i)$ returns the number of the partition to which column $i$ belongs. 
+
+\section{Encoding Boolean Table Constraints}
+
+\paragraph{SAT}
+Given a Boolean table constraint 
+\texttt{table}($\hat{b},T$) 
+ the minimal SAT encoding is
+$$
+\begin{array}{rl}
+b'_r \rightarrow b_i, & r \in 1..m, T_{ri} = 1 \\
+\vee_{r \in 1..m} b'_r
+\end{array}
+$$
+where $b'_r$ are newly introduced Boolean variables, one per row. The domain consistent SAT encoding adds
+
+$$
+\begin{array}{rl}
+b_i \rightarrow \bigvee_{r \in 1..m, T_{ri} = 1} b'_r, & i \in 1..n 
+\end{array}
+$$
+\paragraph{MIP}
+We can similarly encode to MIP.
+$$
+\begin{array}{rl}
+\sum_{r \in 1..m} b'_r = 1 \\
+\sum_{r \in 1..m, T_{ri} = 1} b'_r = b_i
+\end{array}
+$$
+
+Interestingly this is not done by MiniZinc which uses the integer variables directly.
+
+\begin{example}
+Consider the table defined by 
+$$
+\begin{array}{rrr}
+x_1 & x_2 & x_3 \\ \hline
+2 & 1 & 1 \\
+3 & 2 & 2 \\
+4 & 3 & 3 \\
+1 & 2 & 3 \\
+2 & 1 & 2 
+\end{array}
+$$
+then the Boolean version is 
+   $$
+   \begin{array}{l|rrrr|rrr|rrr}
+&   b_1 & b_2 & b_3 & b_4 & b_5 & b_6 & b_7 & b_8 & b_9 & b_{10} \\ \hline
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0 \\
+&   0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0 \\
+&   0   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1 \\
+&   1   & 0   & 0   & 0   & 0   & 1   & 0   & 0   & 0   & 1 \\
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 0   & 1   & 0 \\ \hline
+p& 1   & 1   & 1   & 1   & 2   & 2   & 2   & 3   & 3   & 3    
+   \end{array}
+   $$
+where $x_1 = b_1 + 2b_2 + 3b_3 + 4b_4$,
+$x_2 = b_5 + 2b_6 + 3b_7$ and $x_3 = b_8 + 2b_9 + b_{10}$.
+The MiniZinc encoding to MIP is
+$$
+\begin{array}{rrrrrcl}
+r_1 &+ r_2& + r_3& + r_4& + r_5 &= &1 \\
+2 r_1& + 3r_2& + 4 r_3& + r_4& + 2r_5 &=& x_1 \\
+r_1& + 2r_2& + 3 r_3& + 2r_4&+ r_5 &=& x_2 \\
+r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& x_3 \\
+\end{array}
+$$
+while the encoding from the Boolean table is
+$$
+\begin{array}{rrrrrcl}
+r_1 &+ r_2& + r_3& + r_4& + r_5 &= &1 \\
+&&&r_4 && = & b_1 \\
+r_1 &&&& +r_5 & = &b_2 \\
+& r_2 &&&& = & b_3 \\
+&&r_3 &&& = &b_4 \\
+r_1 &&&&+r_5 & = & b_5 \\
+& r_2 && +r_4 && = & b_6 \\
+&& r_3 &&& = & b_7 \\
+r_1 &&&&& = & b_8 \\
+& r_2 &&& +r_5 & = &b_9 \\
+&& r_3 & + r_4 && = &b_{10}
+\end{array}
+$$
+\end{example}
+
+
+\section{Encoding Table Constraints to MIP}
+
+
+
+
+
+\section{Table Cut Generation}
+
+
+
+\section{Initial cut generation}
+
+Given a Boolean table $T$ and 
+counterexample $\hat{v}$ 
+which does not appear in $T$,
+i.e. $\hat{b} = \hat{v} \wedge T$ 
+is unsatisfiable. 
+
+We can determine an explanation/cut for the failure as follows:
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{explain}($\hat{v}$, $T$) \\
+    \> $X \gets \emptyset$ \\
+    \> $R \gets \{1, ..., m\}$ \\
+    \> \textbf{while} $R \neq \emptyset$ \\
+    \> \> \text{choose} $i \in \hat{v} \setminus X$ \\
+    \> \> $R \gets R \cap T_i$ \\
+    \> \> $X \gets X \cup \{i\}$ \\
+    \> $X \gets \textsf{shrink}(X,T)$ \\
+    \> \textbf{return} $\sum_{j \in X} b_j \leq |X|-1$
+\end{tabbing}
+\end{quote}
+
+To ensure minimality we probably have to shrink $X$. 
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{shrink}($X$, $T$) \\
+    \> \textbf{for} $i \in X$ \\
+    \> \> \textbf{if} $\cap_{l \in X \setminus \{i\}} T_l = \emptyset$ \\
+    \> \> \> $X \gets X \setminus \{i\}$ \\
+    \> \textbf{return} $X$
+\end{tabbing}
+\end{quote}
+
+New shrink as transcribed from email
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{shrink}$(v,T,X,s)$ \\
+    \> \textbf{for }$ i \in \{ p(j) ~|~ j \in X \}$ \\
+    \> \> $X’ = X \setminus \{ j \in X ~|~ p(j) = i \}$ \\
+    \> \> $Y = Y \setminus X' $ \\
+    \> \> $\textbf{if all rows in T satisfy} \sum_{Y} b_i \leq s-1$ \\
+    \> \> \> $X = Y$ \\
+    \> \> $s = s-1$ \\
+    \> \textbf{return} $X,s$ \\
+\end{tabbing}
+\end{quote}
+
+What I implemented: set coefficients of omitted variables to 0, keep om
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{shrink}$(\sum_{i \in X} a_i b_i \leq s-1)$ \\
+    \> \textbf{for }$ i \in \{ p(j) ~|~ j \in X \}$ \\
+    \> \> $X’ = X \setminus \{ j \in X ~|~ p(j) = i \}$ \\
+    \> \> $a'_{X'} = a_{X}$ \\
+    \> \> $a_{X'} = 0$ \\
+    \> \> \> $s = s-1$ \\
+    \> \> $\textbf{if all rows in T satisfy} \sum_{i \in X} a_i b_i \leq s-1$ \\
+    \> \> \> $X = Y$ \\
+    \> \> $\textbf{else}$ \\
+    \> \> \> $a_{X'} = a_{X}$ \\
+    \> \textbf{return} $X,s$ \\
+\end{tabbing}
+\end{quote}
+
+
+\begin{theorem}
+    \textsf{explain}$(\hat{v},T)$ generates a correct cut eliminating $\hat{v}$ and no row of $T$.
+    \begin{proof}
+        First note that the cut 
+        $\sum_{i \in X} b_j \leq |X|-1$ always cuts off $\hat{v}$ since $\hat{v}_j = 1, \forall j \in X$, so $\sum_{j \in X} v_j = |X|$. 
+        We then show by induction that each row
+        in $R$ satisfies $\sum_{j \in X} b_j = |X|$, and each row in
+        $1..m \setminus R$ satisfies
+        $\sum_{j \in X} b_j \leq |X|-1$.
+        Clearly the statements holds at the beginning of the loop vacuously.
+        Choosing column $i$ to add to $X$ we remove all rows from $R$ which do not include $i$. Any row $r$ excluded now
+        used to satisfy the sum over $X$ at equality, but does not have column $i$ so 
+        updating $X$ to $X \cup \{i\}$ it now satisfies the inequality.
+        Each row continuing in $R$ includes all $i \in X$ so still satisfies the equality. Each row already not in $R$, still satisfies the inequality since we add 1 to the right hand side, and at most 1 to the left hand side. 
+        Finally we show that the loop must terminate, since we can choose $X = \hat{v}$ which must exclude every row
+        since $\hat{v} \not\in T$. 
+     \end{proof}
+\end{theorem}
+
+
+We can use statistics to try to generate small explanations.
+A simple greedy heuristic is to choose
+$i = \text{arg~min}(\{ size(R \cap T_l) ~|~ l \in \hat{x} \setminus X\}$
+the column which reduces the size of the the remaining rows $R$ by the greatest amount.
+
+Instead we can try columns $i$ in order of increasing size that just actually reduce $R$ that is
+$i = \text{arg~min}(\{ size(T_l) ~|~ l \in \hat{x} \setminus X, R \cap T_l \neq R\}$ 
+
+\begin{example}\label{ex:start}
+   Consider the table defined by 
+   $$
+   \begin{array}{l|rrrr|rrr|rrr}
+&   b_1 & b_2 & b_3 & b_4 & b_5 & b_6 & b_7 & b_8 & b_9 & b_{10} \\ \hline
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0 \\    % %    
+&   0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0 \\    %    %  %
+&   0   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1 \\    % %  %
+&   1   & 0   & 0   & 0   & 0   & 1   & 0   & 0   & 0   & 1 \\      %  %
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 0   & 1   & 0 \\    % %     %
+\hline
+p& 1   & 1   & 1   & 1   & 2   & 2   & 2   & 3   & 3   & 3    
+   \end{array}
+   $$
+   
+   encoding the table $[[2,1,1],[3,2,2],[4,3,3],[1,2,3],[2,1,2]]$. 
+   The partitions are $\{b_1, b_2, b_3, b_4\}$, $\{b_5, b_6, b_7\}$, and
+   $\{b_8,b_9,b_{10}\}$. Notice how in each row exactly one of each partition holds.
+   Suppose we wish to explain why $b_2 \wedge b_6 \wedge b_9$ ([2,2,2]) is false.
+   We start with $R = 1..5$ we choose $b_2$ and $R = \{1,5\}$ we next choose
+   $b_6$ and $R = \emptyset$. The initial cut is $
+   \neg b_2 \vee \neg b_6 \equiv
+   1 - b_2 + 1 - b_6 \geq 1 \equiv
+   -b_2 -b_6 \geq -1 \equiv
+   b_2 + b_6 \leq 1$
+   . 
+   \hb{what about $
+   \neg b_2 \lor b_5 \equiv
+   1-b_2 + b_5 \geq 1 \equiv
+   -b_2 + b_5 \geq 0 \equiv
+    b_2 - b_5 \leq 0
+   $
+   ? Gets $R=\emptyset$ but it's a stronger constraint (in terms of how many non-solutions it removes); $b_2$ only allows rows 1,5 and then $b_5$ has to be true, leaves 30 solutions.
+   
+   $b_2 + b_6 \leq 1$ leaves 33 solutions.
+   }
+\end{example}
+
+\begin{example}
+    What cuts are possible for case considered in Example~\ref{ex:start}. Some correct cuts that remove (2,2,2) with small size are:
+    $b[2] - b[5] \leq 0$ ($b_2 \rightarrow b_5$)
+    resulting in 30 solutions. 
+    $-b_3 -b_5 + b_9 \leq 0$ ($b_9 \rightarrow b_3 \vee b_5)$ also resulting in 30 solutions (not the same)
+    $b_2 - 2b_5 - b_6 + b_9 \leq 0$ resulting in 29 solutions. 
+    All of these use both positive and negative coefficients!
+
+    Interestingly there are many other such cuts, e.g. $b_2 - b_4 - b_5 + b_7 \leq 0$ (24 solutions) and
+    $b_2  -2b_5 + b_8 \leq 0$ (24 solutions).
+\end{example}
+
+\subsection{Validity Lowering}
+
+So far we start from a valid cut and try to strengthen it by lifting in new variables.
+What about the opposite approach. 
+Start with a cut that eliminates the counterexample, but is invalid, and "lower" it to be valid.
+
+\begin{example}
+    Can we think about weakening a cut of the solution, instead to be valid with respect to the table.
+    For our running example, the constraint $b_2 \leq 0$ cuts the solution (2,2,2) but is not valid (too strong).
+    It eliminates $P_1$ and $P_5$. 
+    We can add in $-b_5$ to make it valid, obtaining $b_2 - b_5 \leq 0$.
+    This is tight on all rows!
+
+    We could also think about 
+    multiplying by 2 to get
+    $2 b_2 \leq 0$ and then add in
+    $2b_2 - b_5 - b_8 - b_9 \leq 0$
+    to get a valid cut.
+    Have to be careful we still cut off (2,2,2).
+    This is tight only on rows $\{1,3,4,5\}$. 
+    This allows us to lift in $b_3$ giving
+    $2b_2 + b_3 - b_5 - b_8 - b_9 \leq 0$. (27 solutions)
+\end{example}
+
+\question{Given an invalid cut $\sum_{i \in S} a_i b_i \leq k$ that eliminates the candidate valuation $\hat{v}$, what is the process of weakening this to make it valid, while still eliminating $\hat{v}?$ 
+}
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{genpush}($\sum_{i \in S} a_i b_i \leq k$,$T$,$\hat{v}$) \\
+    \> \% Assumption $\hat{v}$ violates $\sum_{i \in S} a_i b_i \leq k$ \\
+    \> $V \gets \sum_{i \in S} a_i v_i - k$ \% positive \\
+    \> Compute $RS_r = \sum_{i \in S} a_i T_{ri}$ for all $r$. \\
+    \> $R_{violated} \gets \{ r \in R ~|~ RS_r > k\}$ \\
+    \> \textbf{while} $R_{violated} \neq \emptyset$ \\
+    \> \> $mv \gets \text{arg min}\{ RS_r - k ~|~ r \in R_{violated}\}$ \% least violated \\
+    \> \> $D \gets \textbf{if~} $V=1$ \textbf{~then~} S \cup \hat{v} \textbf{~else~} S \textbf{~endif}$ \\
+    \> \> choose $j \in \hat{T}_{mv} \setminus D$ \\
+    \>\>  $S \gets S \cup \{j\}$ \\
+    \>\>  $n = \min (RS_j, V-1 + RS_j (1-v_j))$ \\
+    \>\>  $a_j \gets -n$ \\
+    \>\> $RS \gets RS - n T_j$ \\
+    \>\> $V \gets V - n v_j$ \\
+    \> \> $R_{violated} \gets \{ r \in R_{violated} ~|~ RS_r > k\}$ \\
+    \> \textbf{return} $\sum_{i \in S} a_i b_i \leq k$
+\end{tabbing}
+\end{quote}
+
+\question{does this guarantee to lower to validity?}
+
+\begin{theorem}
+    Assuming $\forall i \in S, v_i = 1, a_i > 0$
+    \textsf{genpush} always returns a correct explanation of why $\hat{v} \not\in T$. 
+    \begin{proof}
+        By assumption we have that the original constraint cuts off, i.e., is not satisfied by, $\hat{v}$, and only involves variables that appear true in $\hat{v}$.
+
+        We show that the violation level $V$ remains above 1, and there is always a choice for $j$ available in the loop, until it terminates.
+
+        The first condition is easy. If $V=1$ we dont allow choosing variables appearing in $\hat{v}$. In this case $j$ does not appear in $\hat{v}$ and the violation is unchanged. If $V > 1$ then we allow choosing variables in $\hat{v}$, but then coefficient $n < V$. After update $V$ remains positive. 
+
+        We choose the table row $mv$ that least violates the current constraint. 
+        If $V = 1$ we dont allow picking variables in $\hat{v}$, otherwise we do.
+        Suppose to the contrary that $\hat{T}_{mv} \setminus D$ is empty. 
+        \pjs{PROOF IS NOT FINISHED}
+    \end{proof}
+\end{theorem}
+
+
+\begin{example}
+    Starting from cut $b_2 \leq 0$. 
+    $RS = [1,0,0,0,1]$.
+    We find $R_{violated} = \{1,5\}$ both are violated by 1. Then $mv = 1$ and choose a variable in row $mv$ not in \{2,6,9\} in this case 5. We compute $n = \min(-1,0) = -1$.
+    We update the $RS = [0,0,0,0,0]$, and find $R_{violated} = \emptyset$. We return
+    $b_2 - b_5 \leq 0$. 
+\end{example}
+
+
+\begin{example}
+    Not really a counterexample $3b_2 - b_8 \leq 0$ with table $T$. 
+Now $V = 3$, 
+$R_{violated} = \{1,5\}$ with $RS = [2,0,0,0,3]$
+then we choose $mv = 1$, and calculate
+$\hat{T}_1 \setminus D = \{5\}$. So $n = 2$
+We update $RS = [0,0,0,0,1]$ and 
+$R_{violated} = \{5\}$. 
+In the next iteration we choose $mv = 5$,
+$j = 9$
+and $n = 1$, giving constraint
+$3b_2 - 2 b_5 - b_8 - b_9 \leq 0$   
+\end{example}
+
+\section{Fractional solutions}
+
+For the real use case, when we are a cut generator inside a MIP solver, the current incumbent solution will likely be fractional in many parts. 
+
+\begin{example}
+    Assuming the table of Example~\ref{ex:start}, suppose the fractional solution is
+    [0,0.5,0.5,0,0,1,0,0,1,0]. We can generate an integer cut $b_2 + b_6 + b_9 \leq 2$ which cuts off this solution. We can then cover lift it to get $b_1 + b_2 + b_4 + b_6 + b_9 \leq 2$ 
+    \pjs{Aside, we could lift to get 
+    $b_1 + b_2 + 2b_4 + b_6 + b_9 \leq 2$ }
+\end{example}
+
+We can always start from the explanation $\sum_{\hat{x}_i > 0} x_i \leq n-1$
+when the table involves $n$ integer variables,
+and then validity lower to get a correct cut.
+\pjs{Better finalize validity lowering}
+
+Lets try a generalization of the explanation approach!
+
+\begin{example}
+    We are not aiming to just enforce integrality. So e.g. if we added to the table the entry $(2,2,2)$, [0,1,0,0,0,1,0,0,1,0] then we should not try to cut off
+    [0,0.5,0.5,0,0,1,0,0,1,0] since it appears as a convex combination of 
+    [0,1,0,0,0,1,0,0,1,0], [0,0,1,0,0,1,0,0,1,0].
+    There will be no cutting plane that separates it from the convex hull of the table.
+\end{example}
+
+\pjs{HENK: you should move to this version for initial cut generation, almost identical to \textsf{explain}.}
+Simple version: fails if we cant make a cut from the integer part of the solution.
+\begin{quote} 
+\label{lst:explain_frac}
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{explain\_frac}($\hat{v}$, $T$) \\
+%    \> \textbf{if} $\hat{v}$ is in the convex hull of $T$ \\
+%    \> \> \textbf{return} $true$ \% no cut \\
+    \> $W \gets \{ i ~|~ \hat{v}_i = 1 \}$ \\
+    \> $F \gets \{ i ~|~ \hat{v}_i > 0 \wedge \hat{v}_i < 1 \}$ \% not used \\
+    \> $X \gets \emptyset$ \\
+    \> $R \gets \{1, ..., m\}$ \\
+    \> \textbf{while} $R \neq \emptyset$ \\
+    \> \> \textbf{if} $W \subseteq X$ \\
+    \> \> \> \textbf{return} $true$ \% no cut \\
+    \> \> \text{choose} $i \in W \setminus X$ \\
+    \> \> $R \gets R \cap T_i$ \\
+    \> \> $X \gets X \cup \{i\}$ \\
+    \> $X \gets \textsf{shrink}(X,T)$ \\
+    \> \textbf{return} $\sum_{i \in X} b_i \leq |X|-1$
+\end{tabbing}
+\end{quote}
+
+Lets try to generate a cut in all cases
+(where $\hat{v}$ is not within the convex hull).
+There are $k$ integer variables in the original table, so the columns are partitions into $k$ sets by $p$. 
+For fractional cutting planes we will
+choose to add one integer variable at a time to the cut. 
+Define $C(\hat{v},l) = \{ i ~|~ v_i > 0 \wedge p(i) = l\}$ as
+the columns corresponding to integer $l \in 1..k$ 
+with non-zero entries in the fractional solution $\hat{v}$.
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{explain\_frac2}($\hat{v}$, $T$) \\
+    \> $W \gets \{ i ~|~ \hat{v}_i = 1 \}$ \\
+    \> $F \gets \{ i ~|~ \hat{v}_i > 0 \wedge \hat{v}_i < 1 \}$ \\
+\> $D \gets \{ r \in 1..m ~|~ \hat{T}_r \subseteq W \cup F\}$ \\
+    \> $U = \{ i ~|~ i \in F, \forall r \in D.T_{ri} = 0\}$ \\
+    \> \textbf{if} $F \neq \emptyset$ \\
+    \> \> \textbf{if} $U = \emptyset$ \\
+    \> \> \> \textbf{return} $true$ \\
+    \> \> \textbf{else} \\
+    \> \> \> \text{choose} $i \in U$ \\
+    \> \> \> $V \gets \{ p(i) \}$ \\
+    \> \> \> $X \gets \{ i \}$ \\
+    \> \> \> $R \gets T_i$ \\
+    \> \> \> $s \gets 0$ \\
+    \> \textbf{else} \\
+    \> \> $R \gets \{1, .., m\}$ \\
+    \> \> $X \gets \emptyset$ \\
+    \> \> $V \gets \emptyset$ \\
+    \> \> $s \gets -1$ \\
+    \> \textbf{while} $R \neq \emptyset$ \\
+    \> \> \text{choose} $l \in 1..k \setminus V$ \\
+    \> \> $V \gets V \cup \{l\}$ \\
+    \> \> $s \gets s + 1$ \\
+    \> \> $R \gets R \cap (\cup_{i \in C(\hat{v},l)} T_i)$ \\
+    \> \> $X \gets X \cup C(\hat{v},l)$ \\
+    \> \textbf{return} $\sum_{j \in X} b_j \leq s$
+\end{tabbing}
+\end{quote}
+
+$D$ are the difficult rows, all of whose  coefficients appear either wholly or 
+fractionally in the current solution $\hat{v}$. 
+Let $U$ be the fractional coefficients that appear in no "difficult" row $D$. If $U = \emptyset$ we will not create a cut. 
+
+\hb{
+I've updated the greedy heuristic from the basic explanation algorithm:
+
+$$
+i = \text{arg~min}(\{ size(R \cap (\cup_{i \in C(\hat{v},l)} T_i)) ~|~ l \in 1..k \setminus V\}
+$$
+
+Or:
+
+$$
+i = \text{arg~min}(\{ size(R \cap (\cup_{i \in C(\hat{v},l)} T_i)) ~|~ l \in 1..k \setminus V\}
+$$
+
+}
+
+We can use statistics to try to generate small explanations.
+A simple greedy heuristic is to choose
+$i = \text{arg~min}(\{ size(R \cap T_l) ~|~ l \in \hat{x} \setminus X\}$
+the column which reduces the size of the the remaining rows $R$ by the greatest amount.
+
+Instead we can try columns $i$ in order of increasing size that just actually reduce $R$ that is
+$i = \text{arg~min}(\{ size(T_l) ~|~ l \in \hat{x} \setminus X, R \cap T_l \neq R\}$ 
+
+
+\ignore{
+
+\hb{
+Questions, what heuristic should we chose for choosing the $l$'s?
+}
+}
+
+\begin{lemma}
+    If $\hat{v}$ is in the convex hull of $T$ then $U = \emptyset$.
+    \begin{proof}
+        Suppose $\hat{v} = \bar{\lambda} T$ 
+        then clearly $\lambda_r = 0$ for $r \not\in D$ since otherwise we get a non-zero value in a column not in $\hat{v}$. 
+        Suppose to the contrary $\exists i \in U$ then $T_{ri} = 0, \forall r \in D$, but $v_i > 0$. Contradiction since $\lambda_r = 0$ for all rows where $T_{ri} > 0$.
+    \end{proof}
+\end{lemma}
+
+\pjs{Proof only works for explain frac2 without the case for $F = \emptyset$}
+\begin{lemma}
+   \textsf{explain\_frac2}$(\hat{v}, T)$ generates a correct cut eliminating $v$ and no row of $T$.
+    \begin{proof}
+     First note that the cut always cuts off $\hat{v}$ since at all stages 
+     $\sum_{j \in X} v_j > s$.
+     Initially this is true since $X = \{i\}, v_i > 0, s = 0$, 
+     or $X = \emptyset, s = -1$ 
+     and in each iteration of the loop
+     we add to $X$ all columns for variable $l$ that take a non-zero value in $\hat{v}$, hence adding 1 to the sum, and we also add 1 to $s$. 
+
+     We now show by induction that each 
+     row in $R$ satisfies $\sum_{j \in X} b_j  = s+1$, and each row not in $R$ satisfies
+     $\sum_{j \in X} b_j \leq s$. 
+     If $F \neq \emptyset$ initially $X = \{i\}$ and all rows in $R$ have $T_{ri} = 1$ satisfying the equality condition and each or
+     Each row not in $R$ has $T_{ri} = 0$ thus satisfying the inequality condition. 
+     Otherwise if $F = \emptyset$ then
+     $X = \emptyset$ and $s = -1$ and all rows are in $R$ satisfying the first condition.
+ 
+     In the loop iteration, we choose an unselected variable $l$ and add $C(\hat{v},l)$ to $X$ and 1 to $s$. 
+     For rows $r$ remaining in $R$ we have that $T_{ri} = 1$ for some $i \in C(\hat{v},l)$ hence they continue to satisfy the equality condition. For rows $r$ leaving $R$ we have that $T_{ri} = 0, \forall i \in C(\hat{v},l)$ and hence they now satisfy the inequality condition. 
+     For rows $r$ already not in $R$, we add at most one to the sum in the inequality condition (since all new variables added to $X$ are from a single integer), and we add one to the right hand side, thus they continue to satisfy the inequality condition.
+
+     Finally, we show that the loop terminates, since we can always choose $X = \{i\} \cup \bigcup_{l \in 1..k \setminus \{p(i)\}} C(\hat{v},l)$ to eliminate all rows $R$, because no rows in $D$ include column $i$, and all other rows include a coefficient not in $X \subset W \cup F$. 
+    \end{proof}
+\end{lemma}
+
+
+\begin{example}
+\label{ex:explain-frac}
+    Lets consider the fractional solution 
+    $\hat{v}$ = [0,0.5,0.5,0,0,1,0,0.5,0.5,0].
+    Then $W = \{6\}$, $F = \{2,3,8,9\}$,
+    $D = \{ 2 \}$ and $U = \{2,8\}$.
+    Suppose we choose $i = 2$, then we 
+    construct $X = \{2\}$ and $s = 0$.
+    $R = \{ 1,5 \}$ and $V = \{p(3)\} = \{1\}$. 
+    % TODO [peter] p(2)?
+    Suppose we choose $l = 2$, then $X$ becomes $\{2,6\}$
+    and $R = \emptyset$. The resulting cut is
+    $b_2 + b_6 \leq 1$.
+
+    If we instead choose $l = 3$ then $X$ becomes $\{2,8,9\}$
+    and $R$ remains as $\{1,5\}$, we then choose $l = 2$
+    resulting in $X = \{2,6,8,9\}$ and $s = 2$. The resulting cut is $b_2 + b_6 + b_8 + b_9 \leq 2$ (weaker than the earlier result).
+
+    Suppose instead we choose $i = 8$ then we construct
+    $X = \{8\}$ and $s = 0$, $R = \{1\}$ and $V = \{p(8)\} = \{3\}$. If we choose $l = 2$ then $X$ becomes $\{6,8\}$ and
+    $R = \emptyset$. The resulting cut is $b_6 + b_8 \leq 1$.
+\end{example}
+
+Until now, the initial explanation has always been a disjunction of negated literals (and equivalently a cut of positive terms).
+In \texttt{explain\_frac3}, we can also create cuts of mixed polarity, e.g. $b_2 \lor \neg b_5$ as in example \ref{ex:start}.
+% Possibly this could be done through pseudo-columns, although we need to account for that adding a negated literal does not set all other literals in its group to false (except the second-last one, discussed later).
+Let $\overline{T}$ be the complement of the table (all 0's replaced by 1's and v.v).
+We start the same as in explain\_frac2.
+Then, we choose the $i$'th literal (not a partition $l$!) from the left-over choices, $X$.
+
+If $v_i>0$, we have explain\_frac2 also, which I will reframe a bit:
+%Selecting $b_i$ means the other literals which are of the same partition and assigned non-zero will be made false as well.
+%Equivalently, we add the term $1 \cdot b_j$ to the cut with incremented right-hand side $s$.
+we extend the disjunction by $\bigvee_{i' \in X'} \neg b_{i'}$ for the literals from columns $X'$ of the same partition $p(i) = p(i')$ and non-negative assignment $v_{i'} > 0$.
+This violates $v_i$, but adds at most 1 to the RHS $s$ because of the partition.
+The rows are kept if that row has a 1 in any column $i \in X'$.
+
+If $v_i = 0$, we can violate it by enforcing $b_i$, equivalently by adding the term $+1-b_i$.
+If $b_i$, all other $b_{i'}$ are false, thus we add 1 to the right-hand side, but now it is cancelled out against the constant $+1$ we added to the left-hand side.
+\hb{actually, maybe we need to add all zero columns from the same partition?}
+% \hb{(except if there is only one left, $b_{i'}$ which should then become true; removing more rows; this is not added yet)}.
+Thus, rows are removed only for column $i$ (which would remove more!) but only if they have a $1$ (of course $1 \ll 0$ for $T$).
+This time, the chosen columns $X'$ only contains 1 column.
+
+Whatever columns $X'$ are chosen, we remove them from $X$.
+
+
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \> \textit{// [same as explain\_frac2]} \\
+    \> \textbf{while} $R \neq \emptyset$ \\
+    \> \> \text{choose} $i \in X$ \\
+    \> \> \textbf{if} $v_i > 0$ \\
+    \> \> \> $X' \gets \{i' ~|~ \hat{v}_{i'} > 0 \land p(i') = p(i)\}$ \\
+    \> \> \> $a_{X'} = 1$\\
+    \> \> \> $s \gets s + 1$ \\
+    \> \> \> $R \gets R \cap (\cup_{i' \in X'} T_{i'})$ \\
+    \> \> \textbf{else} \\
+    \> \> \> $X' \gets \{i\}$ \\
+    \> \> \> $a_i = -1$\\
+    \> \> \> $R \gets R \cap \overline{T_i}$ \\
+    \> \> $X \gets X \setminus X'$ \\
+    \> \textbf{return} $\sum_{j \in X} a_j b_j \leq s$
+\end{tabbing}
+\end{quote}
+
+
+
+\section{Lifting cuts}
+
+\ignore{
+\paragraph{Clique lifting}
+
+Suppose we have a cut $\sum_{i \in S} b_i \leq k$,
+and suppose $b_j$ is such that
+$\forall i \in X. T \models \neg b_i \vee \neg b_j$. i.e., $i$ and $j$ are never true in any row in $T$, then we can lift in $b_j$ obtaining
+$\sum_{i \in S \cup \{j\}} b_i \leq k$.
+
+\begin{example}\label{ex:lift}
+Consider the problem of Example~\ref{ex:start}. 
+Since we have that $b_4$ and $b_6$ never appear together, and $b_4$ and $b_2$ never appear together we can lift the cut to
+$b_2 + b_4 + b_6 \leq 1$.
+\end{example}
+
+\begin{theorem}
+Clique lifting is correct.
+Suppose $T \models \sum_{i \in S} b_i \leq k$ where $k \geq 1$, and $T \models \neg b_i \vee \neg b_j, \forall i \in S$ then
+$T \models \sum_{i \in S \cup \{j\}} b_i \leq k$.
+\begin{proof}
+Suppose to the contrary the lifted cut $\sum_{i \in S \cup \{j\}} b_i \leq k$ 
+is not a consequence of the table $T$.
+Then there is a row that violates the constraint, say $r$.  
+So $\sum_{i \in S \cup \{j\}} T_{ri} > k$. Now in row $r$ if $T_{rj}$ is true then none of $T_{ri}, i \in S$ are true, and clearly the constraint cant be violated. Otherwise if $T_{ri} = 0$ then since $\sum_{i \in S}T_{ri} \leq k$, by correctness of the original cut, we have a contradition.
+\end{proof}
+\end{theorem}
+}
+
+\paragraph{Cover lifting}
+Suppose we have a cut $\sum_{i \in S} b_i \leq k$,
+and suppose $b_j$ only apppears in rows where at most $k-1$ variables
+in $S$ are true, i.e.
+$\forall i \in X. T \models b_j \rightarrow \sum_{i \in S} b_i \leq k$ then we can lift in $b_j$ obtaining
+$\sum_{i \in S \cup \{j\}} b_i \leq k$.
+
+\begin{theorem}
+Cover lifting is correct.
+Suppose $T \models \sum_{i \in S} b_i \leq k$ where $k \geq 1$, and $T \models b_j \rightarrow \sum_{i \in S} b_i \leq k-1$ then
+$T \models \sum_{i \in S \cup \{j\}} b_i \leq k$.
+\begin{proof}
+Suppose to the contrary the lifted cut $\sum_{i \in S \cup \{j\}} b_i \leq k$ 
+is not a consequence of the table $T$.
+Then there is a row that violates the constraint, say $r$.  
+So $\sum_{i \in S \cup \{j\}} T_{ri} > k$. Now in row $r$ if $T_{rj}$ is true then by the implication
+$\sum_{i \in S} T_{ri} <k$ and clearly the constraint cant be violated. Otherwise if $T_{ri} = 0$ then since $\sum_{i \in S} T_{ri} \leq k$, by correctness of the original cut, we have a contradition.
+\end{proof}
+\end{theorem}
+
+How do we efficiently search for $j$ to lift in via cover lifting. 
+Let $R_{tight} \subseteq R$ be
+the rows $r$ 
+where $\sum_{i \in S} T_{ri} = k$.
+Let $X = \cup_{r \in R_{tight}} \hat{T}_r$, then we
+can lift in any variables in $C \setminus X$.
+This will increase the tight rows,
+we can recalculate and try again. 
+
+\begin{example}
+    Consider the original cut from Example~\ref{ex:start}. 
+    Then the tight rows are
+    $\{1, 2, 4, 5\}$. 
+    Then $X = \{ 1, 2, 3, 5, 6, 8, 9, 10\}$, we can lift in $b_4$ or $b_7$. Then $R_{tight} = R$ 
+\end{example}
+
+We can actually efficiently incrementally compute rows where
+$\sum_{i \in S} T_{ri} = k$ by computing $RS_{r} = \sum_{i \in S} T_{ri}$
+When we add $j$ to $S$ we simply update $RS = RS + T_j$ as a vector addition.
+
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{coverlift}($S$,$k$,$T$) \\
+    \> Compute $RS_r = \sum_{i \in S}  T_{ri}$ for all $r$. \\
+    \> $R_{tight} \gets \{ r \in R ~|~ RS_r = k\}$ \\
+    \> $X \gets \cup_{r \in R_{tight}} \hat{T}_r$ \\
+    \> \textbf{while} $C \setminus X \neq \emptyset$ \\
+    \> \> choose $j \in C \setminus X$ \\
+    \>\>  $S \gets S \cup \{j\}$ \\
+    \>\> $RS \gets RS + T_j$ \\
+    \> \> $N_{tight} \gets \{ r \in R \setminus R_{tight} ~|~ RS_r = k\}$ \\
+    \> \> $R_{tight} \gets R_{tight} \cup N_{tight}$ \\
+    \> \> $X \gets X \cup \bigcup_{r \in N_{tight}} \hat{T}_r$ \\
+    \> \textbf{return} $\sum_{i \in S} b_i \leq k$
+\end{tabbing}
+\end{quote}
+
+
+
+
+
+\pjs{HENK: this is the lifting you should implement!}
+We can generalize cover lifting to any constraint form!
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{gencoverlift}($\sum_{i \in S} a_i b_i \leq k$,$T$) \\
+    \> Compute $RS_r = \sum_{i \in S} a_i T_{ri}$ for all $r$. \\
+    \> $R_{tight} \gets \{ r \in R ~|~ RS_r = k\}$ \\
+    \> $X \gets \cup_{r \in R_{tight}} \hat{T}_r$ \\
+    \> \textbf{while} $C \setminus X \neq \emptyset$ \\
+    \> \> choose $j \in C \setminus X$ \\
+    \>\>  $S \gets S \cup \{j\}$ \\
+    \>\>  $a_j \gets \min \{ k - RS_r ~|~ r \in R \setminus R_{right}, T_{rj} = 1 \}$ \\
+    \>\> $RS \gets RS + a_j T_j$ \\
+    \> \> $N_{tight} \gets \{ r \in R \setminus R_{tight} ~|~ RS_r = k\}$ \\
+    \> \> $R_{tight} \gets R_{tight} \cup N_{tight}$ \\
+    \> \> $X \gets X \cup \bigcup_{r \in N_{tight}} \hat{T}_r$ \\
+    \> \textbf{return} $\sum_{i \in S} a_i b_i \leq k$
+\end{tabbing}
+\end{quote}
+
+\hb{
+question: heuristic for choosing $j$?
+}
+
+\begin{example}
+    Consider the use of \textsf{gencoverlift} on a different initial cut $b_2 + b_6 + b_9 \leq 2$. The $RS = [1,2,0,1,2]$ so $R_{tight} = \{2,5\}$, and $X = \{b_2, b_3, b_5, b_6, b_9\}$. Selecting $j = 4$ we find $a_4 = 2$
+    and lift to get $b_2 + 2b_4 + b_6 + b_9 \leq 2$, then $RS = [1,2,2,1,2]$ and 
+    $R_{tight} = \{2,3,5\}$, and $X = \{b_2, b_3, b_4, b_5, b_6, b_7, b_9, b_{10}\}$. 
+    Selecting $j = 8$ we find $a_8 = 1$ and lift to get $b_2 + 2b_4 + b_6 + b_8 + b_9 \leq 2$ and     $R_{tight} = \{1,2,3,5\}$, and $X = \{b_2, b_3, b_4, b_5, b_6, b_7, b_8 b_9, b_{10}\}$. Finally selecting $j = 1$, $a_j = 1$ we get $b_1 + b_2 + 2b_4 + b_6 + b_8 + b_9 \leq 2$ (25 solutions!).
+\end{example}
+
+
+
+
+
+
+\subsection{Using the Objective}
+
+Each of the 01 variables will have a reduced cost in the current LP solution. 
+Those fixed at 0 or 1 by propagation will have a reduced cost of 0, but those that are simply at their bound may have reduced cost 0, if they are in the basis.
+Lets assume for simplicity everything set to 1 is in the basis (not true for various extended versions of Simplex).
+
+Assuming the Master MIP is a minimization problem, then variables with a negative reduced cost are eligible to enter the basis. Since we are finished with the Simplex, we know that each variable has a non-negative reduced cost. 
+
+This represents how much we would have to increase the objective in order to let the variable take a non-zero value. 
+So variables with a low reduced cost are "more likely to enter the basis, and hence should be preferred to variables with a high reduced cost, which are unattractive to enter in the basis (i.e. increase their value above 0).
+
+We can thus use higher reduced costs to bias our choice of columns to choose for the initial cut, and for lifting in.
+\question{Well for the initial cut all the variables take value 1, so have 0 reduced cost.}
+
+\begin{example}
+    Consider the original cut from Example~\ref{ex:start}. 
+    Then the tight rows are
+    $\{1, 2, 4, 5\}$. 
+    Then $X = \{ 1, 2, 3, 5, 6, 8, 9, 10\}$, we can lift in $b_4$ or $b_7$. Suppose the reduced costs for $b_4$ and $b_7$ are 4 and 2 respectively, then we might expect
+    $b_2 + b_6 + b_7 \leq 1$ is a better cut from the perspective of the objective, since all being equal its more likely that $b_7$ enters the basis than $b_4$ so its more important to constrain it. 
+\end{example}
+
+Since many of the variables we will be considering are going to have reduced cost of 0, we can then tie break using the counts of each column. 
+We would expect that a shorter constraint that is tight for all rows would be preferable. Hence picking columns with high occurrence counts, is likely to be preferable.
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{choose}($C$)  \\
+    \> $C' \gets \{ c \in C ~|~ reduced\_cost[c] > 0 \}$ \\
+    \> \textbf{if} $C' \neq \emptyset$ \\
+    \> \> $m \gets \min \{ reduced\_cost[c] ~|~ c \in C' \} $ \\
+    \> \textbf{else} $m \gets 0$ \\
+    \> $Cand = \{ c \in C ~|~ reduced\_cost[c] = m \}$ \\
+    \> $j \gets \text{arg max}\{ row\_occurence[c] ~|~ c \in Cand \}$ \\
+    \> \textbf{return} $j$
+\end{tabbing}
+\end{quote}
+
+\subsection{Pseudo Derivative}
+
+Define the centre of mass of the binary table $T$
+as
+$$
+\hat{c} = \frac{\sum_{r \in 1..m} \hat{T}_r}{m}
+$$
+This must be within the convex hull of the table.
+Now the direction from the vertex to be removed $\hat{v}$ to the centre of mass is
+$\hat{d} = \hat{c} - \hat{v}$.
+We should try to build a cut that maximizes the movement in that direction. 
+So we should choose columns $i$
+to enter positively where $d_i$ is large, 
+and columns to enter negatively where $d_i$ is small.
+
+
+
+\ignore{
+\subsection{Lifting Coefficients?}
+
+How can we take advantage of the coefficients to generate stronger INTEGER cuts, and ideally also
+REAL cuts. 
+
+
+\paragraph{Multiplicative lifting}
+\pjs{Turns out its probably useless!}
+
+Suppose that $\sum_{i\in S} a_i b_i \leq k$ where $a_i > 0, i \in S$ 
+is a valid cut, then the following constraint for any $L > 0$
+is equivalent (in the integers) 
+$\sum_{i\in S} L a_i b_i \leq L k + (L-1)$ 
+but not in the reals so this may be bad for MIP.
+\pjs{The hint is here, the constraint is EQUIVALENT in the integers, but why does cover lifting not strengthen the result!}
+
+\begin{example}
+    Consider the constraint of Example~\ref{ex:lift}, 
+    $b_2 + b_4 + b_6 \leq 1$ this is equivalent to 
+    $3 b_2 + 3 b_4 + 3 b_6 \leq 5$. 
+    Now we could lift in using cover lifting all variables since there are never more than 2 others true (since its 3 integers). We get
+$b_1 + 3b_2 + b_3 + 3b_4 + b_5 + 3 b_6 + b_7 + b_8 + b_9 + b_{10} \leq 5$.
+This might be good for PB, but probably not for MIP?
+\end{example}
+
+
+
+You can always take any correct cut and multiply to lift in all variables if you so desire. 
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{pbcutlift}($\sum_{i \in S} a_i b_i \leq k$,$T$) \\
+    \> let $\sum_{i \in SE} a_i b_i \leq k = \textsf{gencoverlift}(\sum_{i \in S} a_i b_i \leq k$,$T$) \\
+    \> \textbf{while} $SE\subset C$ \\
+    \> \> $a_i \gets 2\times a_i, i \in SE$ \\
+    \> \> $k \geq 2 \times k + 1$ \\
+    \> \> let $\sum_{i \in SE} a_i b_i \leq k = \textsf{gencoverlift}(\sum_{i \in SE} a_i b_i \leq k$,$T$) \\
+    \> \textbf{return} $\sum_{i \in C} a_i b_i \leq k$
+\end{tabbing}
+\end{quote}
+
+\begin{example}
+    Assuming we start with original cut
+    $b_2 + b_6 \leq 1$, then \textsf{pubcutlift}
+    will call \textsf{gencoverlift} to obtain
+    $b_2 + b_4 + b_6 \leq 1$, we then call
+    \textsf{gencoverlift} on
+    $2 b_2 + 2 b_4 + 2b_6 \leq 3$, and say we lift in $b_1$ obtaining 
+    $b_1 + 2b_2 + 2b_4 + 2b_6 \leq 3$. 
+    We can lift in $b_3$ to get 
+    $b_1 + 2b_2 + b_3 + 2b_4 + 2b_6 \leq 3$.
+    We can lift in $b_5$ to get 
+    $b_1 + 2b_2 + b_3 + 2b_4 + b_5 + 2b_6 \leq 3$. 
+    We can then lift in $b_7$ to get
+    $b_1 + 2b_2 + b_3 + 2b_4 + b_5 + 2b_6  + b_7 \leq 3$.  This is what \textsf{gencoverlift} returns, since no further lifting is possible.
+    We then call  \textsf{gencoverlift} on
+     $2b_1 + 4b_2 + 2b_3 + 4b_4 + 2b_5 + 4b_6  + 2b_7 \leq 7$. We can then lift in the remaining variables to obtain the final cut
+     $2b_1 + 4b_2 + 2b_3 + 4b_4 + 2b_5 + 4b_6  + 2b_7 + b_8 + b_9 + b_{10} \leq 7$.
+\end{example}
+
+MAYBE the multiplicative lifting is worthless.
+Does it prune any integer solution?
+
+\begin{tabular}{lr}
+Cut & raw solutions \\ \hline
+$b_2 + b_6 \leq 1$ & 33 \\
+$b_2 + b_4 + b_6 \leq 1$ & 30 \\
+$b_1 + 2b_2 + b_3 + 2b_4 + b_5 + 2b_6  + b_7 \leq 3$ & 30 \\
+$2b_1 + 4b_2 + 2b_3 + 4b_4 + 2b_5 + 4b_6  + 2b_7 + b_8 + b_9 + b_{10} \leq 7$ & 30 \\
+$b_1 + 3b_2 + b_3 + 3b_4 + b_5 + 3 b_6 + b_7 + b_8 + b_9 + b_{10} \leq 5$ & 30 \\
+\end{tabular}
+
+
+
+
+
+\paragraph{Lift and Project Cuts}
+
+We can replace the table constraint by all its at most one implicants:
+$\neg b_i \vee \neg b_j$ or equivalently $b_i + b_j \leq 1$.
+There may be many of these (note we have that $b_i + b_j \leq 1, \forall i,j. p(i) = p(j)$).
+Indeed perhaps we can just add $\sum_{i \in 1..n, p(i) = k} b_i = 1$ forall $k$ 
+to the LP. 
+
+We can then generate lift and project cuts, from the original cut, but what is the objective? 
+}
+
+\subsection{Lifting by "Gift-wrapping"}
+
+Consider the table $T$ and initial cut 
+$c \equiv \sum_{i \in S} a_i b_i \leq k$
+which is satisfied by all points in $T$
+generated from counterexaple $x$. 
+
+We can use the "initial solution finding" approach of Chand and Kapur~\cite{chandkapur}~(Theorem 3) to create a facet of $T$. It may not be guaranteed to remove the counterexample though?
+
+Let $U \subseteq T$ be the points that are tight to $c$, e.g. $\sum_{i \in S} a_i T_{ri} = k$. 
+If $U = \emptyset$ we can clearly reduce $k$ 
+to $k = \max\{ \sum_{i \in S} a_i T_{ri} | r \in 1..m \}$ so that at least one it right
+If $|U| = n+1$ then this is a facet. 
+Otherwise we can reorder the columns in $T$ to we can consider $c$ as
+$sum_{i \in 1..|U|} a_i b_i \geq k$.
+\pjs{Hmm why is this guaranteed to be tight at $|S|$ points} ...
+
+Given set of points $T$ and counterexample $x$.
+Let $T_r$ be the closest point to $x$. 
+Let $\vec{v} = \vec{(x\hat{T}_r)}$ be the unit vector from $x$ to $\hat{T}_r$. Define $k = \vec{v}.\hat{T}_r$
+Clearly $\vec{v}. \hat{b} \geq k$ is a correct cut. \pjs{NOPE see below!} 
+\begin{example}
+    Consider the example of Example~\ref{ex:start}. 
+    One closest point to [0,1,0,0,0,1,0,0,1,0] (2,2,2) is
+    $P_1 = [0,1,0,0,0,1,0,1,0,0]$ (2,2,1) at distance 1.
+    Then $\bar{a} = [0,0,0,0,0,0,0,-1,1,0]$ and $k = 1$
+    which now includes $x$! 
+\end{example}
+
+Translate the points into a space where $\vec{v} = [1,0,0,\ldots,0]$.
+Now we can apply the gift-wrapping approach of Chand and Kapur 
+in this space. Translate the result back. Because the points are all on the 01 hypercube the resulting tight facet defining constraint should be integral, and cannot contain $x$!
+
+\pjs{OK can we "specialize" gift-wrapping to our simple case.}
+
+Given $T = {P_1, \ldots, P_m}$ and counterexample $\bar{x}$,
+Suppose $c \equiv \bar{a}. \bar{b} \leq k$ is a correct separator. 
+Let $U \subset T$ be the points a that are tight to $c$,
+i.e., $U = \{ j ~|~ \bar{a}. P_j = k\}$. If $|U| = n+1$ this must be facet defining. Otherwise we  should be able to gift wrap it.
+
+Let $i$ be the first index where $a_i \neq 0$
+Remap every point in $T$ to the dimensions defined by
+$k - \bar{a}.\bar{b}, b_1, \ldots,s b_{i-1}, b_{i+1}, \ldots, b_n$.
+Denote these as $T' = \{P'_1, \ldots, P'_m\}$.
+Note select one point in $u \in U$ as the starting point for gift wrapping (it has the 0 value in dimension 1. We have a point
+$u$ and normal vector $\bar{n} = [1,0,0, ..., 0]$ such that $u$ is on the supporting hyperplane and $\bar{n}.P'_j \geq 0$ (by construction).
+\question{Is this remapping to different dimensions maintaining the convex hull, I guess so, probably well known!}
+\begin{example}
+Given the initial cut $b_2 + b_6 \leq 1$ 
+Then $U = \{1,2,4,5\}$ 
+we remap the points replacing $b_2$ by $b_2' = 1 - b_2 - b_6$ so
+(in place for simplicity)
+[0,1,0,0,1,0,0,1,0,0] $\rightarrow$ [0,0,0,0,1,0,0,1,0,0]
+[0,0,1,0,0,1,0,0,1,0] $\rightarrow$ [0,0,1,0,0,1,0,0,1,0]
+[0,0,0,1,0,0,1,0,0,1] $\rightarrow$ [0,1,0,1,0,0,1,0,0,1]
+[1,0,0,0,0,1,0,0,0,1] $\rightarrow$ [1,0,0,0,0,1,0,0,0,1]
+[0,1,0,0,1,0,0,0,1,0] $\rightarrow$ [0,0,0,0,1,0,0,0,1,0]
+The $S = \{P'_1, P'_2, P'_4, P'_5\}$ are all points on the supporting hyperplane $b'_2 = 0$ defined by normal vector $\bar{n} = [0,1,0,0,0,0,0,0,0,0]$ 
+we have our starting point for gift wrapping. 
+
+Construct a unit vector $\bar{e}$ such that $\bar{e}.\bar{n} = 0$
+and $\bar{e}. (P'_j-P'_1) = 0$ for $j \in U$
+and $\bar{e}. (P'_j-P'_1) \geq 0$ for $j \in 1..n \subset U$.
+Let say $\bar{e} = [0,0,0,1,0,0,0,0,0,0]$ in this case.
+
+Compute $\lambda_3 / \mu_3 = \frac{ \bar{e}.(P'_3-P'_1)}{\bar{n}.(P'_3 - P'_1)}$ as $1/1 = 1$
+The new normal $\bar{n}* = \lambda_3 \bar{n} + \mu_3 \bar{e} = [0,1,0,1,0,0,0,0,0,0]$ (which could be normalized)
+\pjs{The fourth coefficient has to be -1, otherwise point $P'_3$ is not on the hyperplane!}
+Now all points are tight and we are done. 
+The new constraint is $\bar{n}*.b \geq 0$
+
+The resulting constraint, mapped back to the the original constraints is 
+$b_2 + b_4 + b_6 \leq 1$.
+So its just creates what my lifting does.
+
+
+
+\end{example}
+
+
+
+
+ 
+
+
+
+
+\section{MDDs as cut generators}
+
+Why not replace the table with an MDD which can be much smaller. 
+I guess Willem would say just add the flow encoding to the MIP.
+
+
+
+\section{Flow encoding of MDD}
+
+An MDD can be encoded as a flow network directly into MIP.
+Here is the general case for a middle layer of the MDD
+
+$$
+    \newcommand{\xyo}[1]{*++[o][F-]{#1}}
+    \newcommand{\xyoo}[1]{*++[o][F=]{#1}}
+\xymatrix{
+    \xyo{l1} \ar[r]_{e_{11}}\ar[rd]_{e_{12}}] & \xyo{m1} \ar[r]_{e'_{11}} & \xyo{r1} \\
+    \xyo{l2} \ar[r]_{e_{22}}\ar[ru]_{e_{21}}] & \xyo{m2} \ar[r]_{e'_{22}} & \xyo{r2} \\
+    & \ldots \\
+    \xyo{ln_l} \ar[r]_{e_{n_ln_m}}\ar[ruu]_{e_{n_l2}} & \xyo{mn_m} \ar[r]_{e'_{n_mn_r}} & \xyo{rn_r} \\
+}    
+$$
+
+Each edge $e_{ij}$ from layer $l$ to layer $m$ is labelled by a Boolean $b(e_{ij})$ from variable $x_l$.
+Similarly each edge $e'_{ij}$ from layer $m$ to layer $r$ is labelled by a Boolean $b(e'_{ij})$ from variable $x_m$. 
+
+We create new Booleans $b_{ij}$ to represent each edge $e_{ij}$ and new Booleans
+$b'_{ij}$ to represent each edge $e'_{ij}$
+
+The flow constraints for level $m$ are
+
+$$
+\begin{array}{rcll}
+\sum_{\{i ~|~ e_{ik} \text{~exists} \}} b_{ik} &=&
+\sum_{\{j ~|~ e'_{kj} \text{~exists} \}} b'_{kj}, & 1 \leq k \leq n_m \\
+\sum_{\{ ij~|~ b(e'_{ij}) = b_u } b'_{ij} & = & b_u, & u \in D(x_m)  
+\end{array}
+$$
+
+If a Boolean $b_u, u \in D(x_m)$ only occurs on one edge $e'_{ij}$ we can avoid creating a Boolean  $b'_{ij}$
+and instead directly use $b_u$.
+
+The table of Example~\ref{ex:start} is
+encoded as the MDD below:
+$$
+    \newcommand{\xyo}[1]{*++[o][F-]{#1}}
+    \newcommand{\xyoo}[1]{*++[o][F=]{#1}}
+\xymatrix{
+   \xyo{src} \ar[r]^{b_2}\ar[rdd]^{b_4}\ar[rddd]_{b_3} \ar[rd]^{b_1} & \xyo{r11} \ar[r]^{b_5} & \xyo{r21} \ar[r]^{b_8} \ar@/^1pc/[r]^{b_9} & \xyoo{snk}   \\
+&     \xyo{r14} \ar[r]^{b_6}                                & \xyo{r24} \ar[ru]^{b_{10}} \\
+        & \xyo{r13} \ar[ru]^{b_7} &  \\
+       & \xyo{r12} \ar[r]^{b_6} & \xyo{r22} \ar[ruuu]^{b_{9}} \\                     
+}
+$$
+Which is encoded as flow simply as
+$$
+\begin{array}{rcl@{~~}l}
+b_1 + b_2 + b_3 + b_4 &= &1 &(snk) \\
+b_2 &= &b_5 & (r11)\\
+b_5 &= &b_8 + e_{21s} &(r21) \\
+e_{21s} + e_{22s} & = &b_9 \\
+b_1 &= &e_{142} & (r14)\\
+e_{142} + e_{122} & = &b_6 \\
+e_{142} + b_7 &=& b_{10} & (r24) \\
+b_4 & = & b_7 & (r13) \\
+b_3 &=& e_{123}  & (r12)\\
+e_{122} &=& e_{22s} & (r22)\\
+e_{21s} + b_8 + b_{10} + e_{22s} &=& 1 & (snk)\\
+\end{array}
+$$
+where I have reused Booleans for edge variables if they only appear once!
+    
+
+
+\section{Compact Tables}
+
+We can extend the \textsf{explain} methods to compact tables, we need to satisfy every row of the compact table, which means 
+we have not remove any values supported by a "compact row".
+
+For "short tables" where we can have $x_i = \star$
+
+Define $T_i$ to include all rows where $x_i = \star$, i.e.
+$T_i = \{ r \in 1..m ~|~ T_{ri} \neq 0\}$.
+We can then effectively reuse \textsf{explain\_frac}.
+
+We could do slightly better by realising that 
+we can assume $\sum_{i \in 1..n, p(i) = k} T_{ri} = 1$.
+
+
+\begin{example}
+    Consider the "short table" defined by 
+    $$
+\begin{array}{rrr}
+x_1 & x_2 & x_3 \\ \hline
+2 & \star & 1 \\
+3 & 2 & 2 \\
+4 & 3 & 3 \\
+1 & 2 & 3 \\
+2 & 1 & \star 
+\end{array}
+$$
+Then to explain why 
+[0,1,0,0,0,1,0,0,0.5,0.5,0]
+is not supported the algorithm works as follows. 
+We compute $W = \{2,5\}$, $R = \{1,2,3,4,5\}$.
+We first choose $i = 5$,
+we update $R = \{1,2,4\}$.
+We next choose $i = 2$
+and get $R \{1\}$,
+Finally we generate no cut.
+
+To explain why
+[0,0.5,0.5,0,0,0,0,1,0,1,0]
+is not supported, we compute $W = \{6,9\}$  $R = \{1,2,3,4,5\}$. 
+We choose $i = 9$ and update 
+$R = \{2,5\}$.
+We next choose $i = 6$ and 
+update $R = \{\}$.
+The resulting cut is
+$b_7 + b_9 \leq 1$.
+\end{example}
+
+We can also reuse \textsf{explain\_frac2} with the same interpretation of $T_i$.
+
+\paragraph{An Interesting Short Table}
+\begin{example}
+The table is from a voting rules: three lords and three peasants vote. If the lords agree they determine the result, if they dont the majority of the peasants do. 
+This is a monotone function which is not a threshold function (not expressible as a PB).
+
+This results in a compact table 
+   $$
+   \begin{array}{l|rrr|rrr}
+& l_1 & l_2 & l_3 & p_1 & p_2 & p_3 \\ \hline
+& 1   & 1   & 1   & *   & *   & * \\     %  % 
+& 0   & 1   & *   & 1   & 1   & * \\  %     %
+& 0   & 1   & *   & *   & 1   & 1 \\  %  %
+& 0   & 1   & *   & 1   & *   & 1 \\  %
+& 1   & 0   & *   & 1   & 1   & * \\        %
+& 1   & 0   & *   & *   & 1   & 1 \\     %
+& 1   & 0   & *   & 1   & *   & 1 \\
+& 0   & *   & 1   & 1   & 1   & * \\  %     %
+& 0   & *   & 1   & *   & 1   & 1 \\  %  %
+& 0   & *   & 1   & 1   & *   & 1 \\  %
+& 1   & *   & 0   & 1   & 1   & * \\        %
+& 1   & *   & 0   & *   & 1   & 1 \\     %
+& 1   & *   & 0   & 1   & *   & 1 \\
+& *   & 0   & 1   & 1   & 1   & * \\  %     %
+& *   & 0   & 1   & *   & 1   & 1 \\  %  %
+& *   & 0   & 1   & 1   & *   & 1 \\  %
+& *   & 1   & 0   & 1   & 1   & * \\  %     %
+& *   & 1   & 0   & *   & 1   & 1 \\  %  %
+& *   & 1   & 0   & 1   & *   & 1 \\  %
+   \end{array}
+   $$
+Given the counterexample 
+$[l_1,l_2,l_3,p_1,p_2,p_3] = [0,0,1,0,0,0]$
+a minimum explanation is 
+$l_1 = 0 \wedge p_1 = 0 \wedge p_2 = 0$
+or equivalently the cut 
+$l_1 + p_1 + p_2 \geq 1$.
+How can we get a cut like
+$l_1 + l_2 + l_3 + p_1 + p_2 + p_3 \geq 3$
+which clearly is valid (although does not imply the previous version)
+\end{example}
+
+To work on short tables where we dont have an underlying integer encoding we need to expand \texttt{explain\_frac}
+to take into account negative literals. 
+Define $T_i, i < 0$ as the set
+$\{ r ~|~ r \in 1..m ~|~ T_{ri} \neq 1 \}$
+
+\begin{quote} 
+\label{lst:explain_frac}
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{explain\_frac\_gen}($\hat{v}$, $T$) \\
+    \> $W \gets \{ i ~|~ \hat{v}_i = 1 \} \cup \{ -i ~|~ \hat{v}_i = 0\}$ \\
+    \> $F \gets \{ i ~|~ \hat{v}_i > 0 \wedge \hat{v}_i < 1 \}$ \% not used \\
+    \> $X \gets \emptyset$ \\
+    \> $R \gets \{1, ..., m\}$ \\
+    \> \textbf{while} $R \neq \emptyset$ \\
+    \> \> \textbf{if} $W \subseteq X$ \\
+    \> \> \> \textbf{return} $true$ \% no cut \\
+    \> \> \text{choose} $i \in W \setminus X$ \\
+    \> \> $R \gets R \cap T_i$ \\
+    \> \> $X \gets X \cup \{i\}$ \\
+    \> $X \gets \textsf{shrink}(X,T)$ \\
+    \> \textbf{return} $\sum_{i \in X, i > 0} b_i + \sum_{i \in X, i < 0} (1 - b_i) \leq |X|-1$
+\end{tabbing}
+\end{quote}
+
+
+We need to extend \textsf{shrink} to handle the negative indices.  With the correct interpretation of $T_i$ there is no change. 
+
+
+\begin{example}
+Using \textsc{explain\_frac} on $\hat{v} = [l_1,l_2,l_3,p_1,p_2,p_3] = [0,0,1,0,0,0]$ we determine 
+$W = \{ -1, 2, 3, 4, 5, 6\}$. 
+If we choose $i = -1$ then $R = \{ 2,3,4,8,9,10,15,16,17,18,19,20,21\}$.
+If we next choose $i = 2$ then
+$R = \{ 2,3,4,8,9,10,19,20,21\}$.
+If we next choose $i = -4$ then
+$R = \{3,9,20\}$
+Finally if we choose $i = -6$ then $R = \emptyset$
+and $X = \{ -1, 2, -4, -6\}$.
+The resulting explanation is
+$(1- l_1) + l_2 + (1-p_1) + (1-p_3) \leq 3$,
+or $l_2 \leq l_1 + p_1 + p_3$.
+Consider applying \textsf{shrink} to $X = \{ -1, 2, -4, -6\}$. We find that 
+    $T_{-1} \cap T_{-4} \cap T_{-6} = \emptyset$, and
+    hence return $X = \{-1,-4,-6\}$ generating constraint
+    $(1-l_1) + (1-p_1) + (1-p_3) \leq 2$ or
+    $1 \leq l_1 + p_1 + p_3$.
+\end{example}
+
+\begin{example}
+    Lets go back and redo the original example: 
+    $\hat{v} = [0,1,0,0,0,1,0,0,1,0]$.
+    Then $W = \{-1,2,-3,-4,-5,6,-7,-8,9,-10\}$. 
+    Choosing $i = -1$ we get $R = \{ 1,2,3,5\}$.
+    Choosing $i = -5$ we get $R = \{ 2, 3\}$.
+    Choosing $i = 9$ we get $R = \{2\}$.
+    Choosing $i = -3$ we get $R = \{\}$.
+    If we apply \textsf{shrink} to $X = \{-1,-3,-5,9\}$ we get
+    $X = \{-3,-5,-9\}$ and the final cut it
+    $(1-b_3) + (1-b_5) + b_9 \leq 2$ or
+    $b_9 \leq b_3 + b_5$ (30 solutions).
+\end{example}
+
+\subsection{Lifting for Short Tables}
+
+We need to expand our gen cover lift to lift in negations of variables $(1-b_i)$.
+
+
+\begin{quote} 
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{gencoverlift}($\sum_{i \in S} a_i b_i \leq k$,$T$) \\
+    \> $C \gets \{-n, \ldots, -1, 1, \ldots, n\}$ \\
+    \> Compute $RS_r = \sum_{i \in S} a_i T_{ri}$ for all $r$. \\
+    \> $R_{tight} \gets \{ r \in R ~|~ RS_r = k\}$ \\
+    \> $X \gets \{ j, -j ~|~ j \in S\}$ \\
+    \> $X \gets \bigcup_{r \in R_{tight}} \left(\bigcup \{i \in 1..n ~|~ T_{ri}=1, a_i > 0\} \cup \bigcup \{ -i ~|~ i\in 1..n,  T_{ri}=0, a_i < 0\}\right)$ \\
+    \> \textbf{while} $C \setminus X \neq \emptyset$ \\
+    \> \> choose $j \in  C \setminus X$ \\
+    \>\>  $S \gets S \cup \{ |j|)\}$ \\
+    \>\>  $X \gets X \cup \{j, -j\}$ \\
+    \>\> \textbf{if} $j > 0$ \\
+    \> \>\>  $a_j \gets \min \{ k - RS_r ~|~ r \in R \setminus R_{right}, T_{rj} = 1 \}$ \\
+    \>\>\> $RS \gets RS + a_j T_j$ \\
+    \>\> \textbf{else} \\
+    \>\>\> $a_j \gets \max \{ RS_r - k ~|~ r \in R \setminus R_{right}, T_{rj} = 0 \}$ \\
+    \>\>\> $RS \gets RS - a_j (1-T_j)$ \\
+    \>\>\> $k \gets k + a_j$ \\
+    \>\> $N_{tight} \gets \{ r \in R \setminus R_{tight} ~|~ RS_r = k\}$ \\
+    \> \> $R_{tight} \gets R_{tight} \cup N_{tight}$ \\
+    \> \> $X \gets X \cup \bigcup_{r \in N_{tight}} \left(\bigcup \{i \in 1..n ~|~ T_{ri}=1, a_i > 0\} \cup \bigcup \{ -i ~|~ i\in 1..n,  T_{ri}=0, a_i < 0\}\right)$  \\
+    \> \textbf{return} $\sum_{i \in S} a_i b_i \leq k$
+\end{tabbing}
+\end{quote}
+????
+
+\begin{example}
+    Consider the new lifting on $b_2 + b_6 + b_9 \leq 2$. Then RS = [1,2,0,1,2], so $R_{tight} = \{2,5\}$ and $X = \{ 2,6,9,-2,-6,-9\}$ and
+    then is expanded to $\{-1,2,-2,3,-3,-4,5,-5,6,-6,-7,-8,9,-9,-10\}$. 
+    Selecting $j = 4$ we find $a_4 = 2$, $R_{tight} = \{2,3,5\}$ and RS = [1,2,2,1,2]
+    $X = \{ -1,2,-2,3,-3,4,-4,5,-5,6,-6,7,-7,-8,9,-9,10,-10\}$. Selecting $j = 1$, we find $a_j = 1$, $R_{tight} = \{1,2,3,4,5\}$ and we get 
+    $b_1 +b_2 + 2b_4 + b_6 + b_8 + b_9 \leq 2$.
+\end{example}
+
+
+\begin{example}
+    Consider the new lifting on $-2 b_2 - 3b_3 -b_5 + 3b_9 \leq 0$. Then RS = [-2,0,0,0,0], so $R_{tight} = \{2,3,4,5\}$ and $X = \{ 2,-2,4,-4,5,-5,9,-9\}$ and
+    then is expanded to $\{1,-1,2,-2,3,-3,4,-4,5,-5,6,-6,7,-7,-8,9,-9,10,-10\}$. 
+    Selecting $j = 8$ we find $a_4 = 2$, $R_{tight} = \{1,2,3,4,5\}$ and RS = [0,0,0,0,0]
+    $X = \{ 1,-1,2,-2,3,-3,4,-4,5,-5,6,-6,7,-7,8,-8,9,-9,10,-10\}$. We get 
+    $-2b_2 -3b_3 - b_5 + 2b_8 + 3b_9 \leq 0$.
+\end{example}
+
+
+\section{Tables on Integer Variables}
+
+The assumption in the rest of the paper is that the table constraint is applied to 01 variables (in groups representing integer variables). What can we do if we dont have those 01 representations.
+
+Consider the table
+$$
+\begin{array}{rrr}
+x_1 & x_2 & x_3 \\ \hline
+2 & 1 & 1 \\
+3 & 2 & 2 \\
+4 & 3 & 3 \\
+1 & 2 & 3 \\
+2 & 1 & 2 
+\end{array}
+$$
+Suppose the rest of the model never introduces 01 variables to represent the $x$s.
+Now suppose we have current solution $x_1 = 2, x_2 = 2, x_3 = 2$. Can we generate a cut on the integer variables? That removes this solution but no solutions in the table
+
+There is such a cut
+$-2 x_1 + 6 x_2 - 3 x_3 \leq 1$ (20 solutions).
+But I am not sure we are guaranteed to have such a cut?
+This was generated by brute force!
+
+
+\section{Notes on Disjunctive Cuts}
+
+A table is a set of disjunctive IPs. For our example it is
+
+$$
+\begin{array}{rl}
+\hat{b} = [0,1,0,0,1,0,0,1,0,0] & \vee \\
+\hat{b} = [0,0,1,0,0,1,0,0,1,0] & \vee \\
+\hat{b} = [0,0,0,1,0,0,1,0,0,1] & \vee \\
+\hat{b} = [1,0,0,0,0,1,0,0,0,1] & \vee \\
+\hat{b} = [0,1,0,0,1,0,0,0,1,0] &  \\
+\end{array}
+$$
+
+In more traditional matrix form the $r^{th}$
+disjunct
+is
+$$
+I \times \hat{b} = \hat{T}_r 
+$$
+where we think of $\hat{b}$ and the $\hat{T}_r$ as column vectors. 
+\ignore{
+To get a $\geq$ form lets rewrite this to
+$$
+\left[ \begin{array}{c} I \\ -I 
+\end{array} \right] 
+\times \hat{b} \geq 
+\left[ \begin{array}{c} \hat{T}_r \\ -\hat{T}_r 
+\end{array} \right]
+$$
+
+Denote by $II$ the stacked array $I$ above $-I$.
+Similarly denote by $TT_r$ the column 
+$\left[ \begin{array}{c} \hat{T}_r \\ -\hat{T}_r 
+\end{array} \right]$.
+
+Balas and Jeroslaw say any cut 
+$\sum_{i} \alpha_i b_i \geq \alpha_0$
+valid for the disjunctive program
+must have
+$$
+\begin{array}{rl}
+\alpha_j \geq \max_r \theta_r \times II_j, & j \in 1..n \\
+\alpha_0 \leq \min_r \theta_r \times TT_r
+\end{array}
+$$
+for some vectors $\theta_r \geq 0, r \in 1..m$
+(in our case each of size $2n$.
+
+Now since $II_j$ is 0 except at row $j$ (1) and row $j+n$ (-1). The conditions simplify to
+$$
+\begin{array}{rl}
+\alpha_j \geq \max_r \theta_{r,j} - \theta_{r,n+j}, & j \in 1..n \\
+\alpha_0 \leq \min_r \theta_r \times TT_r
+\end{array}
+$$
+}
+
+Balas and Jeroslaw say any cut 
+$\sum_{i} \alpha_i b_i \geq \alpha_0$
+valid for the disjunctive program
+must have
+$$
+\begin{array}{rl}
+\alpha \geq \theta_r \\
+\alpha_0 \leq \theta_r \times \hat{T}_r
+\end{array}
+$$
+for some vectors $\theta_r, r \in 1..m$ (unconstrained in sign).
+This probably just says that 
+$\alpha \times \hat{T}_r \geq \alpha_0, \forall r$!
+
+
+\section{Alldifferent}
+
+Following a conversation with Tias.
+
+Consider an alldifferent constraint 
+\texttt{alldifferent}($x_1, \ldots, x_n$) where the $x$ variables take values from $\{1..m\}$. This will be encoded to MIP as
+
+\begin{eqnarray*}
+\sum_{j=1}^m x_{ij} = 1, & i \in 1..n \\
+\sum_{i=1}^n x_{ij} \leq 1, & j \in 1..m \\
+\end{eqnarray*}
+
+\noindent
+This is totally unimodular and completely captures the problem.
+Suppose that the domains of $x_{ij}$ are
+reduced (by propagation or branching) so that Regins alldifferent would set many of them to 0, e.g. 
+\texttt{alldifferent}($x_1,x_2,x_3$) 
+where $x_i \in 1..4$ and
+$x_{i3} = x_{i4} = 0, i \in \{1,2\}$.
+Propagation would set
+$x_{31} = x_{32} = 0$. 
+
+This does not happen in the MIP solver, although it will never create solutions of the LP with $x_{31} > 0$ or $x_{32} > 0$.  But many other parts of the MIP solver (cut generators, etc) might benefit from this knowledge. 
+We could also add a lazy "local cut" generator for alldifferent, taking the current bounds and running Regins algorithm, and setting locally the 
+01 variables, or generate a global cut and add this to the solver, as well as propagating. In this case the cuts are:
+
+
+$x_{13} = 0 \wedge x_{14}  = 0 \wedge x_{23} = 0 \wedge x_{24} = 0 \rightarrow x_{31} = 0$
+
+
+$x_{13} = 0 \wedge x_{14}  = 0 \wedge x_{23} = 0 \wedge x_{24} = 0 \rightarrow x_{32} = 0$
+
+or
+$x_{31} \leq x_{13} + x_{14} + x_{23} + x_{24}$, and
+$x_{32} \leq x_{13} + x_{14} + x_{23} + x_{24}$.
+
+\question{is this just a linear consequence?}
+
+
+$$
+\begin{array}{rrrrrcrl}
+&& - x_{11} & -x_{12} & - x_{13} & - x_{14} & = & -1 \\
+&& - x_{21} & -x_{22} & - x_{23} & - x_{24} & = & -1 \\
+&&&x_{11} & + x_{21} & + x_{31} & \leq & 1 \\
+&&&x_{12} & + x_{22} & + x_{32} & \leq & 1 \\
+\hline
+-x_{13} & - x_{14} & - x_{23} & - x_{24} & + x_{31} & + x_{32} & \leq & 0  \\
+\hline
+&&&& + x_{31} & + x_{32} & \leq & x_{13}  + x_{14}  + x_{23}  + x_{24}  
+\end{array}
+$$
+OK it is a linear consequence.
+So only the fixing of the variables might have some value.
+
+
+
+
+
+
+
+\bibliographystyle{alpha}
+\bibliography{sample}
+
+\end{document}
+
+
+b1 + 2b2 <= 2
+
+b1 + 2b2 + (1 - b3) <= 2
+
+b1 + 2b2 - b3 <= 1

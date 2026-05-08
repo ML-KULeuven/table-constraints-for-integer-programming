@@ -1,0 +1,490 @@
+
+\ignore{
+for which the following general encoding definition holds:
+\begin{definition}[Encoding]
+\label{def:encoding}
+	A \gls{csp} $Q$ is an \textit{encoding} of \gls{csp} $P$ if: for any assignment $\assignment$ over $\vars{c}$, $\assignment$ satisfies $P$ iff $\assignment$ can be extended to a satisfying assignment of $Q$
+\end{definition}
+}
+
+
+\ignore{
+
+\begin{example}
+\pjs{fix!}
+    Consider the MiniZinc fragment
+\begin{verbatim}
+enum BOX = { SMALL, MEDIUM, LARGE, XLARGE };
+enum PROD = { XYZZY, FURGLE, SNARK };
+var BOX: x1; var PROD: x2; var PROD: x3;
+array[int] of tuple(BOX,PROD,PROD): T = [] (MEDIUM, XYZZY,  XYZZY), 
+                                   (LARGE,  FURGLE, FURGLE),
+                                   (XLARGE, SNARK,  SNARK),
+                                   (SMALL,  FURGLE, SNARK),
+                                   (MEDIUM, XYZZY,  FURGLE)];
+constraint (x1,x2,x3) in T;
+\end{verbatim}    
+which defines three variables \texttt{x1}, \texttt{x2} and \texttt{x3} of two different enumerated types and a array of allowable tuples of values for them in $T$. The constraint on the last line generates a table constraint equivalent to that in Example~\ref{ex:running} once the enumerated types are mapped to integers. Note that the numbering of the values in the enumerated type is irrelevant, and other constraints, for example \texttt{x2 != x3} will introduce 01 variables to represent $\beq{x_2}{j}$ and $\beq{x_3}{j}$ inorder to linearly encode them. 
+\end{example}
+
+This indicates that we may want to always Booleanize a table when encoding it to a \milp solver, since the table itself already indicates that we are reasoning separately about the different values the integer variables involved can take.
+}
+
+
+\ignore{
+More formally, the \gls{lbbd} or \emph{cut generation} approach to enforcing constraint $c$ does not encode $c$ initially.
+Instead when we generate an incumbent solution $\hat{v}$ which satisfies all constraints other than $c$, we check whether it also satisfies constraint $c$.
+If it does we do nothing, otherwise $\hat{v}$ is a \textit{counterexample}.
+In this case, we use a \emph{cut generator} for $c$ to add a linear lazy constraint or \emph{cut} to the model which is a consequence of $c$ but falsifies $\hat{v}$.
+This continues until the solver finds an (optimal) solution which satisfies $c$, or until infeasibility is established.
+% TODO decide on THE term (Benders / feas/opt cuts?)
+\gls{lbbd} \hb{TODO cite}, also known as row or \textit{cut generation}, can be applied to avoid large encodings, for example originating from large tables.
+\hb{TODO example of usage in \milp?}
+To apply cut generation to a \gls{cp} problem $P$, some subset of constraints $\unencoded$ is initially omitted from the encoding $Q$.
+% \hb{TODO however, its variable encodings *are* currently already made upfront. This could actually be done lazily.}
+If solving $Q$ leads to a feasible solution $\assignment$ for $P$, it is returned.
+% TODO think about whether we use the term counterexample everywhere, because sometimes we do not know  if it'
+More likely, $\assignment$ is a \emph{counterexample} which violates one or more of the unencoded constraints.
+}
+%
+\ignore{
+More formally:
+
+\begin{definition}[Counterexample]
+    A \emph{counterexample} for constraint $c$ is an assignment $\assignment$ which fails $c$ 
+    (\ie $\hat{b} = \assignment \wedge c$ is unsatisfiable)
+\end{definition}
+
+% Every time the solver returns a counterexample is found Once a counterexample is found, we can remove it by deriving a valid \textit{cut}:
+
+A counterexample can be removed from the feasible space by a valid cut:
+
+\begin{definition}[Valid cut]
+    \label{def:cut}
+    Given counterexample $\assignment$ for constraint $c$, a valid cut is a constraint $\cut$ which 
+    violates $\assignment$; and
+    for which $c \models \cut$ (\ie any solution of $c$ is a solution of $\cut$)
+    % \begin{enumerate*}
+    %   \item violates $\assignment$; and \label{def:cut:violate}
+    %   \item for which $c \models \cut$ (\ie any solution of $c$ is a solution of $\cut$) \label{def:cut:model}
+    % \end{enumerate*}
+\end{definition}
+}
+
+
+\ignore{
+
+Let's try a generalization of the explanation approach!
+
+\begin{example}
+    We are not aiming to just enforce integrality.
+    So \eg if we added to the table the entry $(2,2,2)$, [0,1,0,0,0,1,0,0,1,0] then we should not try to cut off
+    [0,0.5,0.5,0,0,1,0,0,1,0]
+    since it appears as a convex combination of 
+    [0,1,0,0,0,1,0,0,1,0], [0,0,1,0,0,1,0,0,1,0].
+    There will be no cutting plane that separates it from the convex hull of the table.
+\end{example}
+
+
+
+\begin{quote} 
+\begin{tabbing}
+\label{lst:generate:initial}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{generate\_frac}($\hat{v}$, $T$) \\
+    \> $W \gets \{ i ~|~ \hat{v}_i = 1 \}$ \\
+    \> $F \gets \{ i ~|~ \hat{v}_i > 0 \wedge \hat{v}_i < 1 \}$ \\
+\> $D \gets \{ r \in 1..m ~|~ T_r \subseteq W \cup F\}$ \\
+    \> $U = \{ i ~|~ i \in F, \forall r \in D.T_{ri} = 0\}$ \\
+    \> \textbf{if} $F \neq \emptyset$ \\
+    \> \> \textbf{if} $U = \emptyset$ \\
+    \> \> \> \textbf{return} $true$ \\
+    \> \> \textbf{else} \\
+    \> \> \> \text{choose} $i \in U$ \\
+    \> \> \> $V \gets \{ p(i) \}$ \\
+    \> \> \> $X \gets \{ i \}$ \\
+    \> \> \> $R \gets T_i$ \\
+    \> \> \> $\rhs \gets 0$ \\
+    \> \textbf{else} \\
+    \> \> $R \gets \{1, .., m\}$ \\
+    \> \> $X \gets \emptyset$ \\
+    \> \> $V \gets \emptyset$ \\
+    \> \> $\rhs \gets -1$ \\
+    \> \textbf{while} $R \neq \emptyset$ \\
+    \> \> \text{choose} $l \in 1..k \setminus V$ \\
+    \> \> $V \gets V \cup \{l\}$ \\
+    \> \> $\rhs \gets \rhs + 1$ \\
+    \> \> $R \gets R \cap (\cup_{i \in C(\hat{v},l)} T_i)$ \\
+    \> \> $X \gets X \cup C(\hat{v},l)$ \\
+    \> \textbf{return} $\sum_{j \in X} b_j \leq \rhs$
+\end{tabbing}
+\end{quote}
+}
+
+
+
+We can use statistics to try to generate small explanations.
+A simple greedy heuristic is to choose $i = \text{arg~min}(\{ size(R \cap T_l) ~|~ l \in \hat{x} \setminus X\}$
+the column which reduces the size of the the remaining rows $R$ by the greatest amount.
+Instead we can try columns $i$ in order of increasing size that just actually reduce $R$ that is
+$i = \text{arg~min}(\{ size(T_l) ~|~ l \in \hat{x} \setminus X, R \cap T_l \neq R\}$ 
+
+\begin{example}
+    What cuts are possible for case considered in Example~\ref{ex:start}. Some correct cuts that remove (2,2,2) with small size are:
+    $b[2] - b[5] \leq 0$ ($\be{1}{2} \rightarrow \be{2}{1}$)
+    resulting in 30 solutions. 
+    $-\be{1}{3} -\be{2}{1} + \be{3}{2} \leq 0$ ($\be{3}{2} \rightarrow \be{1}{3} \vee \be{2}{1})$ also resulting in 30 solutions (not the same)
+    $\be{1}{2} - 2\be{2}{1} - \be{2}{2} + \be{3}{2} \leq 0$ resulting in 29 solutions. 
+    All of these use both positive and negative coefficients!
+
+    Interestingly there are many other such cuts, e.g. $\be{1}{2} - \be{1}{4} - \be{2}{1} + \be{2}{3} \leq 0$ (24 solutions) and
+    $\be{1}{2}  -2\be{2}{1} + \be{3}{1} \leq 0$ (24 solutions).
+\end{example}
+
+\pjs{HENK: you should move to this version for initial cut generation, almost identical to \textsf{generate}.}
+Simple version: fails if we can't make a cut from the integer part of the solution.
+\begin{quote} 
+\label{lst:generate_frac}
+\begin{tabbing}
+    xx \= xx \= xx \= xx \= xx \= \kill
+    \textsf{generate\_frac}($\hat{v}$, $T$) \\
+%    \> \textbf{if} $\hat{v}$ is in the convex hull of $T$ \\
+%    \> \> \textbf{return} $true$ \% no cut \\
+    \> $W \gets \{ i ~|~ \hat{v}_i = 1 \}$ \\
+    \> $F \gets \{ i ~|~ \hat{v}_i > 0 \wedge \hat{v}_i < 1 \}$ \% not used \\
+    \> $X \gets \emptyset$ \\
+    \> $R \gets \{1, ..., m\}$ \\
+    \> \textbf{while} $R \neq \emptyset$ \\
+    \> \> \textbf{if} $W \subseteq X$ \\
+    \> \> \> \textbf{return} $true$ \% no cut \\
+    \> \> \text{choose} $i \in W \setminus X$ \\
+    \> \> $R \gets R \cap T_i$ \\
+    \> \> $X \gets X \cup \{i\}$ \\
+    \> $X \gets \textsf{shrink}(X,T)$ \\
+    \> \textbf{return} $\sum_{i \in X} b_i \leq |X|-1$
+\end{tabbing}
+\end{quote}
+
+
+
+\ignore{
+
+\hb{WIP}
+%Firstly, whenever a positive term $j, p(j)$ is chosen, we also remove
+One further change is required to \cref{lst:generate}.
+The \texttt{exactly-one} constraint for a positive partition $l$ with $d$ columns functions as a \texttt{exactly-$(d-1)$} constraint for its negative partition counterpart $l'=-l$.
+Thus, each negative term $1 - \be{l}{\col}$ returned by $C(\assignment, l), l < 0$ increments $s$.
+To avoid this, we redefine $C(\assignment, l), l < 0 = $
+
+% we do not need to remove the counterpart choice, since it cannot be chosen since its v<0
+
+$1 - \be{l}{\col}$ (which it will now do even for integer solutions), we have to increment $s$ by $d'$.
+
+Even for integer solutions, $|C(\assignment, l)|, l < 0$ may return $d$ terms where
+When we get $|C(\assignment, l)|$ positive terms, the upper bound is 1, but $|C(\assignment, -l)|$ is $d-1$.
+
+We redefine $C(\assignment, -l) = $
+Whenever we add partition $l$, it is added to $V$, but for $-l$ we'd like to 
+This means multiple negative terms $j, p(j)<0$ can be chosen for integer $l'$, so $|l'|$ should only be added $V$ in \linex{lst:generate:updateV} if all but one term remains.
+
+\hb{this is implemented, but the last bit might not be necessary; perhaps it's enough just to say that each integer should be added one}
+\pjs{safer to say we only add each integer once, and set $p(\neg \be{i}{j}) = i$}
+\hb{
+the issue with that is that you then run out of choices before you clear $R$.
+I think the original text is wrong though, if we add say three negative terms, we should increment $s$ each time: $(1- \beq{x}{1}) + (1- \beq{x}{3}) (1- \beq{x}{4}) \leq -1 + 3 \leq 2$, otherwise it'd just cut off row 2
+}
+Secondly, we should update the right-hand side only if a new integer $l$ is chosen for the first time by replacing \linex{lst:generate:updateRhs} with $s \gets s + \iverson{C(\assignment, l) \not \in X}$.
+
+}
+
+
+
+
+    \ignore{
+    
+   $$
+   % \begin{array}{l|rrrr|rrr|rrr|rrrr|rr}
+   \begin{array}{l|rrrr|rrr|rrr|r|r|r|r|r|r}
+&
+\besml{1}{1} & \besml{1}{2} & \besml{1}{3} & \besml{1}{4} & \besml{2}{1} & \besml{2}{2} & \besml{2}{3} & \besml{3}{1} & \besml{3}{2} & \besml{3}{3} &
+% \neg \be{1}{1} & \neg \be{1}{2} & \neg \be{1}{3} & \neg \be{1}{4} &
+% 1 -  \be{1}{1} & 1 -  \be{1}{2} & 1 -  \be{1}{3} & 1 -  \be{1}{4} &
+\negate{\besml{1}{1}} & \negate{\besml{1}{2}} & \negate{\besml{1}{3}} & \negate{\besml{1}{4}} & \negate{\besml{2}{1}} &
+\cdots
+% \neg \be{2}{1} & \neg \be{2}{2} & \neg \be{2}{3} & \neg \be{3}{1} & \neg \be{3}{2} & \neg \be{3}{3}
+\\ \hline
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0 & 1 & 0 & 1 & 1 & 0 \\
+&   0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0 & 1 & 1 & 0 & 1 & 1 \\
+&   0   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1 & 1 & 1 & 1 & 0 & 1 \\
+&   1   & 0   & 0   & 0   & 0   & 1   & 0   & 0   & 0   & 1 & 0 & 1 & 1 & 1 & 1 \\
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 0   & 1   & 0 & 1 & 0 & 1 & 1 & 0 \\ \hline
+% p& 1   & 1   & 1   & 1   & 2   & 2   & 2   & 3   & 3   & 3     & 4 & 5 & 6 & 7 & 8 \\ \hline \hline
+p& 1   & 1   & 1   & 1   & 2   & 2   & 2   & 3   & 3   & 3     & -1 & -2 & -3 & -4 & -5 \\ \hline \hline
+%p& 1   & 1   & 1   & 1   & 2   & 2   & 2   & 3   & 3   & 3     & -1 & -1 & -1 & -1 & -2 \\ \hline \hline
+\assignment& 0   & 1   & 0   & 0   & 0   & 1   & 0   & 0   & 1   & 0     & 1 & 0 & 1 & 1 & 1  \\
+h          &     & 2   &     &     &     & 0   &     &     & 1   &       & 2 &   & 2 & 2 & 0 \\ 
+% \rho       &     & .4  &     &     &     & .4  &     &     & .4  &       & .8&   & .8 & .8 & .6 
+% \rho       &     & \frac{1}{4}   &     &     &     & \frac{1}{3}   &     &     & \frac{1}{3}   &       & 1 &   & 1 & 1 & 1 
+   \end{array}
+   $$
+
+    }
+
+
+% because it does not allow $\be{1}{2}\ \land \be{2}{3}$.
+% \hb{STILL thinking about this. So I think we can say it is stronger, which is related to the exactly-one constraint, but you don't have to involve the constraint itself since it's represented in the binary table.
+% Why $x_2 = 1$ is stronger than $x_2 \neq 2$, is clearly because it no longer allows $x_2 = 3$, removing all its non-solutions. But how can we read this fact from the table?
+% }
+% \hb{This is because $\be{2}{1}$ restricts us to rows $\set{1,5}$ which only has $\be{3}{1}$ and $\be{3}{2}$, whereas $\negate{\be{2}{2}}$ restricts us to rows $\set{1,3,5}$ which also includes $\be{3}{3}$.}
+% \scrap{However, \lazyCutlift (see \cref{lst:cutlift}) would extend the first cut to $\be{1}{2} + \be{2}{2} + \be{1}{4} \leq 1$, which instead additionally cuts non-solutions $\sequence{4,3,1}$, $\sequence{4,3,2}$, and $\sequence{4,3,3}$.}
+%Empirically, we see that \lazyCutlift will return an equally strong constraint
+% (but why can't it lift $\be{1}{2} + (1 - \be{2}{1})  + \be{1}{4} \leq 1$)
+
+% enforcing $\be{1}{2} \rightarrow \be{2}{1}$ which
+% # TODO maybe add nbtable symbol
+
+\ignore{
+all of whose coefficients appear either wholly or fractionally in the current solution $\hat{v}$.
+  is positive in the $\assignment_\col > 0$.
+Let $U$ be the fractional coefficients that appear in no difficult row $D$.
+%
+%
+\hb{WIP currently improving the writing here}
+Let $D$ be the \dquote{difficult} rows, for which each $1$ appears in column $\col$ which in the counterexample is $\assignment_\col>0$. 
+Let $U$ be the fractional coefficients that appear in no difficult row $D$.
+If $U = \emptyset$ we will not create a cut.
+ is positive in the $\assignment_\col > 0$.
+Let $U$ be the fractional coefficients that appear in no difficult row $D$.
+If $U = \emptyset$ we will not create a cut.
+}
+
+\ignore{
+Generally, adding a positive term will reduce $R$ faster as positive columns generally have fewer 1's than 0's\scrap{\xspace due to the nature of the direct encoding}.
+Thus, the current heuristic from \cref{eq:greedy} will never choose negative terms\scrap{\xspace because it returns the first minimal value}.
+However, all non-solutions of the table, each represented by a row \textit{not} in $T$, will necessarily have many 1's.
+A positive term will consequently allow relatively many non-solutions, weakening the cut.
+Conversely, a negative term will remove few rows from $R$ but also allow few non-solutions.
+% Since current heuristic will choose the first minimal element, it will never choose a negative term.
+To update the the greedy heuristic $h$ from \cref{eq:greedy}, we can use the density $\rho(\col)= |\transpose{\btable}_\col| / m$ of each column $\col$ as a tie-breaker.
+% Otherwise, the greedy heuristic $h$ from \cref{eq:greedy} will never choose a negative term if it returns the first minimal element.
+Since $0 < \rho(\col) < 1$ as constant columns are removed (discussed in \cref{sec:encoding:bool}), we can simply add the $\rho(\col)$ to the $size$ to implement the tie-breaker.
+Not only does this let the heuristic elect negative terms, it can also choose the better of two positive terms.
+}
+
+
+
+\ignore{
+
+
+
+We collect $D$ as all rows $r$ in $T$ so that for all its columns $j$ holds: $\btable_{r\col}=1 \rightarrow \assignment_\col>0$. These are called the supporting rows of $\assignment$, since no columns that are zero for $\assignment$ belong to $r$. Note that if the converse holds for a certain $\col'$, $b_\col \leq 0$ will violate $\btable_{r\col'}=1$, therefore this cut will eliminate $r$ from the table. As a consequence we collect $U$ as all columns for which the converse does not hold for any row added to $D$ in the previous step.
+
+
+%From a cut which violates $\assignment_\col$, 
+For a row $r$ for which all its coefficients $\btable_{r}$ are non-zero in $\assignment_\col$, \cref{lst:generate} cannot generate a cut satisfying $r$.
+
+
+%$\sum_{l \in \interval{1}{k}, j \in C(\assignment,l)}{b_l} \leq k - 1$.
+%Whereas for a discrete solution, $\assignment$ would be feasible, for a fractional counterexample, we can still mak
+This can happen for a fractional counterexample, where multiple $\assignment_j>0$ within the same partition.
+
+
+For a discrete counterexample, this solution would not be a counterexample, but for a fractional it still is. 
+%As mentioned, when a partition $l$ is added, $C(\assignment,l)$ returns multiple column indices for fractional solutions $\assignment$.
+As mentioned, when a partition $l$ is added, $C(\assignment,l)$ may cause multiple of its variables $b_j$, namely which ahve non-zero $\assignment_\col>0$ to be added to the cut.
+The new cut \textit{only} satisfies rows $r$ for which all $\btable_{rj}=0$.
+Unfortunately, a row which has $\btable_{rj}=1$ in rows where $\assignment_\col>0$, no partition can satisfy them.
+In \cref{lst:frac}, we collect all such rows $D$ in \linex{lst:frac:D}.
+We then every column $u \in U$ for which $\btable_{rj}=0$, and add a single $b_u$ to the cut, removing all difficult rows.
+If $U= \emptyset$, we cannot create a cut, as we cannot do 
+This is because adding a single column $b_j, \assignment_j > 0$ risks satisfying $\assignment$.
+
+
+Two rows, $r$ and $r'$ where $\btable_{rj}=0, \btable{r'j'}=1, j \neq j'$, are violated by the cut, $b_j + b_{j'} \leq 0$.
+To prevent this, \cref{lst:generate} only removes a row if $\btable_{rj} = \btable{r'j'} = 0$.
+if both columns are from the same partition $l = p(j) = p(j')$, then adding this partition will remove these rows.
+
+
+% TODO this has to come when we introduce Fractional
+We could add only $b_j \leq 0$, but if $b_j<1$, less than one is added to the left-hand side, which means $b_j + b_{j''} \leq 1$ may not violate $\assignment$ if $v_j + v_j'' < 1$.
+
+
+
+If a fractional solution $\assignment$ has at least two columns $j$ and $j'$ in the same partition which are non-zero, \ie $\assignment_j \geq \assignment_{j'}>0$, then two rows $r$ and $r'$ which cannot be removed if they have $\btable_{rj} \neq \btable{r'j'}$.
+
+
+
+
+%This is because \cref{lst:generate} adds both variables from partition $l$ to the cut, \ie $b_j + b_{j'} \leq 0$
+If we add $b_j \leq 0$, which allows $\btable_{rj}=0$ but violates another row $\btable_{rj'}=1$, or if we add $\sum_{j \in C(\assignment,l)}{b_j} \leq 0$, we never remove either $r$ or $r'$
+This is because in a single partition
+This is because there is no partition $l$ for which $j \in C(\assignment,l), \btable_{rj} = 0$.
+
+This is because adding a single term $b_j, \assignment_j > 0$ risks removing 
+
+but also some remaining rows $R$, we cannot terms $b_j, j \in C(\assignment,l)$ remove a row $r$ if it does not have $\btable_{r\col} = 0$
+
+Adding $b_j$ from partition $l$ to the cut when $v_j>0$ cuts the counterexample and satisfies all rows $\btable_{r\col}=0$, \eg $b_j \leq 0$
+However, with a fractional solution, there may another non-zero $v_{j'}>0$ in the same partition in which case another row $r'$ would be cut if $\btable_{r'\col'}=1$.
+To avoid this, \cref{lst:generate} always adds all $b_j, j \in C(\assignment,l)$, which would allow both rows $r$ and $r'$.
+%which have $v_j>0$ of partition $l$.
+This keeps the cut valid, but this can only remove rows where $\btable$
+This satisfies only the rows $T_{r\col}=0$ for all, but keeps the cut valid.
+However, we will not terminate if there are rows $D = \btable_{r} \subseteq \setComp{\col}{\assignment_\col>0}$ which cannot be removed from $R$.
+
+
+
+When we add a partition $l$ in \cref{lst:generate}, we add variables $b_j \in C(\assignment,l)$ to the cut, \ie the variables of partition $l$ which are non-zero in $\assignment_\col$.
+Adding only a single variable $b_\col$ from partition $l$ would cut a row $r$ where $T_{r\col} \neq T_{r\col'}, \col \neq \col'$.
+So, only rows for which all $T_{r\col} = 0, \col \in C(\assignment,l)$ can be removed from $R$.
+Thus, we define the difficult rows $D$ as the rows $r$ which have $\btable_{r} \subseteq \setComp{\col}{\assignment_\col>0}$ which cannot be removed from $R$ by \cref{lst:generate}.
+
+
+which multiple non-zero values in $\assignment$, we add variables $C(\assignment,l)$ to the cut to ensure we do not cut a row which has different values where $\assignment_\col$
+We define the difficult rows $D$ as the rows $r$ which have $\btable_{r} \subseteq \setComp{\col}{\assignment_\col>0}$
+Adding a partition $l$ in \cref{lst:generate} will never remove a difficult row, since there will be at least one $T_{r\col'} = 1, \col' \in C(\assignment,l)$, always keeping $r$ in $R$.
+In \linex{lst:frac:U}, we find variables which will remove all difficult rows.
+If no such value exist, we do not 
+
+For a difficult row, \cref{lst:generate} cannot remove it with any parition,  
+
+
+In \cref{lst:generate}, for each partition $l$ added, we add all $b_\col$ with non-zero columns in $\assignment_\col$, since otherwise they risk removing a row $r$ which has 1 in one non-zero column and 0 in another.
+However, if the columns 
+
+$C(\assignment,l)$ to the cut will violate a row $r$
+We collect $D$ as all rows $r$ in $T$ so that for all its columns $j$ holds: $\btable_{r\col}=1 \rightarrow \assignment_\col>0$.
+For a fractional partition $l$, adding all columns $C(\assignment,l)$ to the cut will violate a row $r$
+Note that if the reverse implication holds for a certain $\col'$, when adding $b_{\col'}$ to the cut, $b_\col \leq 0$ will viol $\btable_{r\col'}=1$
+
+
+
+
+
+
+}
+
+
+\ignore{ %NOTRIE
+A table can be encoded more compactly as a \gls{mdd}~\cite{DBLP:journals/constraints/ChengY10}.
+From this, an \gls{mdd} can be encoded into linear constraints, namely with a flow formulation, where each \gls{mdd} node is associated with a constraint enforcing that the sum of incoming edge variables equals the sum of outgoing edge variables, for a total flow of 1.
+%Moreover, the source and sink nodes of the \gls{mdd} have respectively an outgoing and incoming flow of 1, ensuring that $\hat{x}$ takes the value of exactly one row in $T$. 
+The advantage of encoding an \gls{mdd} with a flow formulation is that it is a flow network using only linear constraints, and the resulting linear encoding is \emph{totally unimodular} meaning if there were no other constraints, then all extreme points of the polytope of the \relaxation are integer points~\cite{ahuja1993network}.
+The case of no other constraints is unlikely in practice, but it is still likely to make \milp solving easier.
+An implicit potential advantage is that the \gls{mdd} encoding can be \emph{exponentially smaller} than the Booleanized encoding, since nodes with equivalent sub-\glspl{mdd} are merged.
+
+%\pjs{Dont need the two steps, its shorter to go direct!}
+%A difference to our approach is that we perform the construction of the initial trie and the reduction towards an MDD separately. This way we avoid having to sort rows lexicographically in advance. \\
+
+To convert a table constraint to an \gls{mdd}, we base ourselves on the algorithm described by Cheng and Yap~\cite{DBLP:journals/constraints/ChengY10}. Rows $\hat{T}_r$ are added to a trie by iteration over every row, where the nodes along the path are reused for any shared prefix (see \cref{fig:trie}). Next, equivalent nodes in the trie are merged in a bottom-up fashion, where all prefixes that share the same set of completing suffixes are in the same equivalence class, and therefore share the same node in the resulting \gls{mdd} (see \cref{fig:mdd}).  
+
+In \cref{fig:trie_mdd_combined}, we label each node by its associated prefix (least equivalent prefix for the \gls{mdd}), and label each edge with the next value of a variable, and for the \gls{mdd} we place the equivalent Boolean representation in parentheses
+(to make it easier to follow the flow encoding below).
+
+Note that the paths through the \gls{mdd} are exactly
+$\{ [2,1,1], [2,1,2], [1,2,3], [4,3,3], [3,2,2]\}$ making it isomorphic to the table and the trie, in terms of \emph{integer solutions}.
+Note also that prefixes $[1,2]$ and $[4,3]$ share the same set of suffixes in the table ([3]) and hence share a node in the \gls{mdd}, as well as all the complete sequences (which share suffix []). 
+
+
+
+\newcommand{\xyo}[1]{*++[o][F-]{#1}}
+\newcommand{\xyob}[1]{*++[o][F=]{#1}}
+\newcommand{\xyoy}[1]{*++[o][F=]{#1}}
+\newcommand{\xyoo}[1]{*++[o][F=]{#1}} % for sink node
+
+
+\begin{figure}[H]
+\centering
+
+\begin{minipage}[b]{0.48\textwidth}
+\centering
+\hspace*{-25mm}
+\scalebox{0.7}{
+\[
+\xymatrix@C=15mm@R=7mm{
+   %. \ar@{}[r]_{x_1} & . \ar@{}[r]_{x_2} & . \ar@{}[r]_{x_3} & .  \\
+   \xyo{[]} 
+       \ar[r]^{\be{1}{2}} 
+       \ar[rd]^{\be{1}{1}} 
+       \ar[rddd]^{\be{1}{4}} 
+       \ar[rdddd]_{\be{1}{3}} 
+       & \xyo{[2]} \ar[r]^{\be{2}{1}} 
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar[rd]^{\be{3}{2}} & \xyo{[2,1,1]} \\
+   & \xyo{[1]} \ar[rd]^{\be{2}{2}} & & \xyo{[2,1,2]} \\
+   & & \xyo{[1,2]} \ar[r]^{\be{3}{3}} & \xyo{[1,2,3]} \\
+   & \xyo{[4]} \ar[r]^{\be{2}{3}} & \xyo{[4,3]} \ar[r]^{\be{3}{3}} & \xyo{[4,3,3]} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}} & \xyo{[3,2]} \ar[r]^{\be{3}{2}} & \xyo{[3,2,2]} \\                     
+}
+\]
+}
+
+\subcaption{Non-reduced trie of \cref{ex:running}.}
+\label{fig:trie}
+\end{minipage}%
+\hfill
+\begin{minipage}[b]{0.48\textwidth}
+\centering
+\hspace*{-25mm}
+\scalebox{0.7}{
+\[
+\xymatrix@C=15mm@R=12mm{
+   %. \ar@{}[r]_{x_1} & . \ar@{}[r]_{x_2} & . \ar@{}[r]_{x_3} & .  \\
+   \xyo{[]} 
+       \ar[r]^{\be{1}{2}}
+       \ar[rd]^{\be{1}{1}}
+       \ar[rdd]^>>>>>>{\be{1}{4}}
+       \ar[rddd]_{\be{1}{3}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}} 
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}} 
+       & \xyoo{snk} \\
+   & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
+   & \xyo{[4]} \ar[r]_{\be{2}{3}}
+       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}} 
+       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\                     
+}
+\]
+}
+\subcaption{Reduced \gls{mdd} of \cref{ex:running}.}
+\label{fig:mdd}
+\end{minipage}
+
+\caption{MDD encoding of \cref{ex:running}.}
+\label{fig:trie_mdd_combined}
+
+\end{figure}
+We formalize the reduction of a trie into an \gls{mdd} by defining equivalence classes as follows. Let $pre(T)$ be all prefixes of rows occurring in $T$. Define the prefix equivalence classes of prefix $s$, $E(s)$ as $\{ p \in pre(T) ~|~ \{ f ~|~ p \pp f \in T\} = \{ f ~|~ s \pp f \in T\}\}$.  Note that by this definition all complete rows $\hat{T}_r \in T$ are in the same equivalence class $E(\hat{T}_r)$, due to their set of equivalent suffixes only containing the empty suffix: we label this equivalence class $snk$. 
+
+Note that unlike the algorithm given in pseudocode by Cheng and Yap \cite{DBLP:journals/constraints/ChengY10}, we perform the construction of the trie and the reduction into the MDD in two separate steps. For converting a table constraint to a reduced MDD, the stated worst-case complexity result of $O(m \times k)$ holds in our implementation as well, since both steps require a full pass (first top-down, then bottom-up) through the trie or \gls{mdd} to which at most one node per table entry is added (apart from the source node). A key advantage of our method is that we avoid having to order the rows lexicographically. However, Cheng and Yap's method results in less memory being needed in practice, since the full non-reduced trie never needs to be stored.
+%The construction step can be performed in $O(k \cdot m)$, since for every row, we traverse the trie from its root and make at most one new edge per value \cite{DBLP:journals/constraints/ChengY10}. Before the reduction step, nodes of the \gls{mdd} can be stored in a hash table during construction, leading to retrieval in constant time during reduction (when equivalent nodes are to be detected). Since reduction happens in bottom-up fashion, merged nodes on a lower level can be reused to identify equivalent nodes on a higher level. Therefore, the entire trie is traversed exactly once during reduction, leading to a worst case complexity of $O(k \cdot m)$. This is optimal since inputting the the rows during construction of the trie has the same complexity \cite{DBLP:journals/constraints/ChengY10}. 
+
+%The \gls{mdd} for $T$ has nodes for each (equivalence class) of a row prefix in $T$, where prefixes which share exactly the same set of completing suffixes in $T$ share the same node.
+%Let $pre(T)$ be all prefixes of rows occurring in $T$.
+%Define the prefix equivalence classes of prefix $s$,
+%$E(s)$ 
+%as $\{ p \in pre(T) ~|~ \{ f ~|~ p \pp f \in T\} = \{ f ~|~ s \pp f \in %T\}\}$, that is all prefixes that share the same set of completing suffixes are in the same equivalance class. 
+The graph encoding the \gls{mdd} obtained after the reduction step is defined by vertices $VM = \{ E(s)~|~ s \in pre(T) \}$, and edges $EM$ defined as follows. For each prefix $s$ of row $\hat{T}_r$ 
+there is an edge labelled $j$ from node $E(s)$ to $E(s \pp [j])$ in $EM$ where $s \pp [j]$ is the next longest prefix of $\hat{T}_r$. 
+\ignore{
+The ordering of columns in $T$ has an effect on the size of the resulting MDD, since it affects both the reused nodes during trie construction, and the grouping of prefixes into prefix equivalence classes. However, finding an optimal column ordering that minimizes \gls{mdd} size is NP-complete \cite{DBLP:journals/tc/BolligW96}. Consequently, we do not attempt to find the optimal column ordering, and instead consider different heuristics.
+
+\begin{itemize}
+    \item \textbf{Input ordering}: a baseline where we do not change the order of columns.
+    \item \textbf{Increasing domain}: we order the columns $i \in 1, \dots, k$ by increasing domain size of the associated variable $x_i, i \in 1, \dots, k$. The intuition behind this choice is that for variables with smaller domains, there are fewer choices to make, potentially causing more paths starting from the source to be equivalent. 
+    \item \textbf{Decreasing domain}: we order the columns $i \in 1, \dots, k$ by decreasing domain size of the associated variable $x_i, i \in 1, \dots, k$. The intuition behind this choice is that for variables with smaller domains, there are less branching options for associated nodes in the initially constructed trie. Therefore this heuristic has the potential to lead to larger equivalence classes during the reduction step, since they are determined by a bottom-up pass through the trie. \wout{Maybe not include this one (depending on experimental results)}
+    \item \textbf{Fiedler}: first we construct a similarity matrix between different columns. This is done by considering every pair of two columns $T_i, T_j$, $i, j \in 1, \dots, k$ with $i \neq j$, adding a score of $\max(0, n-1)$ for every row that appears $n$ times in the table consisting only of columns $T_i$, $T_j$. Then, we compute the eigenvalues and eigenvectors of the Laplacian matrix associated with the similarity matrix (analogous to how this is done for the adjacency matrix of a graph). The Fiedler vector is the eigenvector associated with the second smallest eigenvalue, and offers a measure of how well connected a graph is. Using the Fiedler vector, we can reduce the initial similarity matrix of size $k \times k$ to a one-dimensional array of size $k$ where more `connected' columns tend to appear either at the beginning or the end. \wout{I will try to explain eventual ordering in more detail}
+\end{itemize}
+}
+Given a column permutation $\pi$, then $\texttt{table}(\hat{x},T)$ is equivalent to $\texttt{table}(\pi(\hat{x}),\pi(T))$ .
+For the previous encodings, this makes no difference, but the ordering of columns in $T$ can have a significant effect on the size of the resulting MDD. However, finding an optimal column ordering that minimizes \gls{mdd} size is NP-complete \cite{DBLP:journals/tc/BolligW96}. 
+Consequently, we do not attempt to find the optimal column ordering, and instead consider the following different heuristics.
+\textbf{Input ordering}: in the order given.
+\textbf{Increasing domain}: we order the columns $i \in 1, \dots, k$ by increasing domain size of the associated variable $x_i, i \in 1, \dots, k$. The intuition behind this choice is that for variables with smaller domains, there are fewer choices to make, potentially causing more paths starting from the source to be equivalent.
+\scrap{
+\textbf{Decreasing domain}: we order the columns $i \in 1, \dots, k$ by decreasing domain size of the associated variable $x_i, i \in 1, \dots, k$. The intuition behind this choice is that for variables with smaller domains, there are less branching options for nodes of the \gls{mdd}. This means that potentially, more nodes share the same equivalence class due to the bottom-up reduction. %\wout{Maybe not include this one (depending on experimental results)}. 
+\textbf{Fiedler}: we construct a column ordering by building a similarity matrix $S$ between columns and using an eigenvector (the Fiedler vector) of the Laplacian matrix associated with $S$ to order "similar" columns together. This approach has traditionally been used in the context of determining the connectivity of a graph \cite{Fiedler1975}.
+}
+}
+
+
+%There may yet be a much easier way to explain this fractional stuff. If, in one partition l, there are two columns, u and u', non-zero in v, which in one row have .., 0, 1, ... and in another row have .., 1, 0, ..., then we cannot generate a cut which satisfies both rows, because adding b_u + b_u' (as generate would) will still violate either row, and adding just b_u will cut off the 2nd row (and b_u' the 1st). A

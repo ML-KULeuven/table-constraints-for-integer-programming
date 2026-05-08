@@ -1,0 +1,19 @@
+\begin{tabular}{lS[table-format=3.0]S[table-format=3.0]S[table-format=2.0]S[table-format=3.1]S[table-format=5.1]S[table-format=4.1]}
+\toprule
+ & {\pst} & {\sat} & {\sol} & {time} & {constraints} & {cuts} \\
+\midrule
+\baseGleb & \bfseries 166 & 139 & 73 & 864.3 & 9525.9 & {\NA} \\
+\baseBool & 150 & 134 & 71 & 875.6 & 24155.4 & {\NA} \\
+\baseMddInput & 151 & 133 & \bfseries 75 & 859.0 & 36284.4 & {\NA} \\
+\baseMddDomIncr & 157 & 137 & \bfseries 75 & \bfseries 858.8 & 35563.0 & {\NA} \\
+\hline
+\lazyGenerate & \bfseries 166 & 112 & 58 & 936.4 & 15504.4 & 1436.3 \\
+\lazyFractional & \bfseries 166 & 128 & 61 & 926.9 & 15504.4 & 1701.7 \\
+\lazyCutlift & \bfseries 166 & 126 & 66 & 904.3 & 15504.4 & 1256.0 \\
+\lazyAll & \bfseries 166 & 136 & 61 & 923.7 & 15504.4 & 1424.0 \\
+\hline
+\lazyCutoff (1000) & 164 & 143 & 72 & 871.6 & 34787.8 & 1.7 \\
+\lazyCutoff (2000) & 164 & \bfseries 145 & 74 & 864.1 & 35496.4 & 1.9 \\
+\lazyCutoff (3000) & 164 & 144 & 74 & 863.9 & 35503.5 & 0.2 \\
+\bottomrule
+\end{tabular}
