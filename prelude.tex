@@ -1,0 +1,159 @@
+% prelude.tex — shared macros for paper and presentation
+% Usage: \input{prelude} after \documentclass and package loading
+
+% ── Text shorthands ──────────────────────────────────────────────────────────
+\newcommand{\dquote}[1]{``#1''}
+\newcommand{\quoted}[1]{`#1'}
+\newcommand{\ie}{i.e.\xspace}
+\newcommand{\eg}{e.g.\xspace}
+
+% ── Author annotation commands (silenced by default) ─────────────────────────
+\newcommand{\question}[1]{}
+\newcommand{\pjs}[1]{}
+\newcommand{\tias}[1]{}
+\newcommand{\hb}[1]{}
+\newcommand{\wout}[1]{}
+\newcommand{\scrap}[1]{}
+\newcommand{\ignore}[1]{}
+
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+
+% ── Math notation ────────────────────────────────────────────────────────────
+\newcommand{\brackets}[1]{\ensuremath{[\![#1]\!]}}
+\newcommand{\iverson}[1]{\ensuremath{\langle #1 \rangle}}
+\newcommand{\beq}[2]{\brackets{#1 = #2}}
+\newcommand{\be}[2]{\beq{x_{#1}}{#2}}
+\newcommand{\besml}[2]{\scriptstyle\be{#1}{#2}}
+
+\newcommand{\citeNoun}[2]{#1~\emph{et al.}~\cite{#2}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newcommand{\assignment}{\ensuremath{\hat{v}}}
+\newcommand{\true}{\mathit{true}}
+\newcommand{\false}{\mathit{false}}
+\newcommand{\Integers}{\mathbb{Z}}
+\newcommand{\Reals}{\mathbb{R}}
+\newcommand{\Bools}{\mathbb{B}}
+\renewcommand{\emptyset}{\varnothing}
+
+\newcommand{\vars}[1]{\ensuremath{vars(#1)}}
+\newcommand{\scope}[1]{\ensuremath{scope(#1)}}
+\newcommand{\cons}[1]{\ensuremath{cons(#1)}}
+\newcommand{\bounds}[1]{\ensuremath{bounds(#1)}}
+
+\newcommand{\interval}[2]{#1..#2}
+\newcommand{\tuple}[1]{\langle #1 \rangle}
+\newcommand{\sequence}[1]{[#1]}
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\setComp}[2]{\set{#1 ~|~ #2}}
+\newcommand{\sequenceComp}[2]{\sequence{#1 ~|~ #2}}
+\newcommand{\dom}[1]{D(#1)}
+\newcommand{\pp}{+\!\!+}
+
+\newcommand{\rhs}{s}
+
+% ── Table-specific notation ──────────────────────────────────────────────────
+\newcommand{\cols}{n}
+\newcommand{\rows}{m}
+\newcommand{\row}{r}
+\newcommand{\col}{j}
+
+\newcommand{\llinex}[1]{Line \ref{#1}}
+\newcommand{\linex}[1]{line \ref{#1}}
+\newcommand{\lines}[2]{lines \ref{#1}--\ref{#2}}
+
+\newcommand{\ttable}{\texttt{table}\xspace}
+\newcommand{\btable}{T^{\Bools}}
+\newcommand{\btableTransposed}{\hat{T}^{\Bools}}
+\newcommand{\transpose}[1]{\hat{#1}}
+
+\newcommand{\nolbbd}[2]{#2}
+
+% ── Configuration / approach labels ──────────────────────────────────────────
+\newcommand{\textconfig}[1]{\textsc{#1}}
+\newcommand{\baseGleb}{\textconfig{Int}\xspace}
+\newcommand{\baseBool}{\textconfig{Bool}\xspace}
+
+\newcommand{\baseMdd}{\textconfig{MDD}\xspace}
+\newcommand{\baseMddInput}{\textconfig{\baseMdd-input}\xspace}
+\newcommand{\baseMddDomIncr}{\textconfig{\baseMdd-dom}\xspace}
+\newcommand{\baseMddGreedy}{\textconfig{\baseMdd-greedy}\xspace}
+
+\newcommand{\lazyGenerate}{\textconfig{Generate}\xspace}
+\newcommand{\lazyNone}{\textconfig{Generate}\xspace}
+\newcommand{\lazyFractional}{\textconfig{Fractional}\xspace}
+\newcommand{\lazyNegatives}{\textconfig{Negatives}\xspace}
+\newcommand{\lazyCutlift}{\textconfig{Cutlift}\xspace}
+\newcommand{\lazyShrink}{\textconfig{Shrink}\xspace}
+\newcommand{\lazyCutoff}{\textconfig{Hybrid}\xspace}
+\newcommand{\lazyCutoffT}[1]{\textconfig{Hybrid (#1)}\xspace}
+\newcommand{\lazyAll}{\textconfig{All}\xspace}
+
+% ── xy-pic node macros ───────────────────────────────────────────────────────
+\newcommand{\xyo}[1]{*++[o][F-]{#1}}
+\newcommand{\xyob}[1]{*++[o][F=]{#1}}
+\newcommand{\xyoy}[1]{*++[o][F=]{#1}}
+\newcommand{\xyoo}[1]{*++[o][F=]{#1}}
+
+% ── Algorithm macros ─────────────────────────────────────────────────────────
+\newcommand{\codeBlockDelim}{}
+\newcommand{\tableCon}{\ensuremath{\texttt{table}(\hat{b}, \btable)}}
+\newcommand{\generateInitArgs}{\ensuremath{\assignment, \tableCon}}
+\newcommand{\generateArgs}{\ensuremath{\generateInitArgs, X, \rhs, R, V}}
+\newcommand{\validCut}{\sum_{\col \in X} a_\col b_\col \leq \rhs}
+
+% ── Cut lifting macros ──────────────────────────────────────────────────────
+\newcommand{\Cols}{\interval{1}{\cols}}
+\newcommand{\Rows}{\interval{1}{\rows}}
+\newcommand{\colLift}{\col'}
+\newcommand{\Rtight}{\ensuremath{R_{\text{tight}}}}
+\newcommand{\Ntight}{\ensuremath{N_{\text{tight}}}}
+\newcommand{\Xtight}{\ensuremath{X'}}
+\newcommand{\cutliftThm}{%
+Lifting is correct.
+Suppose $\btable \models \sum_{\col \in X} a_\col b_\col \leq \rhs$  and $\btable \models b_{\colLift} \rightarrow \sum_{\col \in X} a_\col b_\col \leq \rhs-a_{\colLift}$ then
+$\btable \models \sum_{\col \in X \cup \set{\colLift}} a_\col b_\col \leq \rhs$.%
+}
+
+% ── Negatives macros ─────────────────────────────────────────────────────────
+\newcommand{\negate}[1]{\overline{#1}}
+\newcommand{\partSize}[1]{\hat{P}_{#1}}
+\newcommand{\unencoded}{B}
+
+% ── Experimental evaluation ──────────────────────────────────────────────────
+\newcommand{\timeout}{600\xspace}
+\newcommand{\memout}{8\xspace}
+\newcommand{\unk}{\texttt{UNK}\xspace}
+\newcommand{\mem}{\texttt{MEM}\xspace}
+\newcommand{\pst}{\texttt{POST}\xspace}
+\newcommand{\sat}{\texttt{FEAS}\xspace}
+\newcommand{\uns}{\texttt{UNS}\xspace}
+\newcommand{\sol}{\texttt{SOLVED}\xspace}
+\newcommand{\opt}{\texttt{OPT}\xspace}
+\newcommand{\XCSPYears}{XCSP3'22\textendash25\xspace}
+\newcommand{\thousands}{$10^3$}
+
+% ── Figures ───────────────────────────────────────────────────────────────────
+% MDD diagram for the running example (parameterised by xy spacing)
+\newcommand{\mddDiagram}[2]{% #1 = @C (column sep), #2 = @R (row sep)
+\xymatrix@C=#1@R=#2{
+   \xyo{[]}
+       \ar[r]^{\be{1}{2}}
+       \ar[rd]^{\be{1}{1}}
+       \ar[rdd]^>>>>>>{\be{1}{4}}
+       \ar[rddd]_{\be{1}{3}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}}
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{snk} \\
+   & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
+   & \xyo{[4]} \ar[r]_{\be{2}{3}}
+       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}}
+       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+}%
+}
+
+% ── Misc ─────────────────────────────────────────────────────────────────────
+\newcommand{\omitVarJ}{[x_1, \ldots, x_{j-1}, x_{j+1}, \ldots, x_{n-1}, x_n]}

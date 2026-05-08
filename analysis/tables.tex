@@ -1,0 +1,28 @@
+\newcommand{\solvbasecsp}{67}
+\newcommand{\solvlazycsp}{36}
+\newcommand{\solvbasecop}{75}
+\newcommand{\solvlazycop}{58}
+\newcommand{\NA}{--}
+
+\begin{table}[htbp]
+    \centering
+    \caption{\tableCaption}
+    \label{tbl:res}
+
+    \begin{subtable}{\textwidth}
+        \centering
+        \caption{180 CSP instances (mean rows: \num{20918}, stdev: \num{1204503}), \sat intentionally empty}
+        \label{tbl:res:csp}
+        \input{analysis/table-csp.tex}
+    \end{subtable}
+
+    \vspace{1em}
+
+    \begin{subtable}{\textwidth}
+        \centering
+        \caption{247 COP instances (mean rows: \num{9548}, stdev: \num{8608271})}
+        \label{tbl:res:cop}
+        \input{analysis/table-cop.tex}
+    \end{subtable}
+
+\end{table}

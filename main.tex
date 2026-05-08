@@ -1,0 +1,1106 @@
+\documentclass[a4paper,UKenglish,cleveref,autoref,thm-restate]{lipics-v2021}
+%This is a template for producing LIPIcs articles. 
+%See lipics-v2021-authors-guidelines.pdf for further information.
+%for A4 paper format use option "a4paper", for US-letter use option "letterpaper"
+%for british hyphenation rules use option "UKenglish", for american hyphenation rules use option "USenglish"
+%for section-numbered lemmas etc., use "numberwithinsect"
+%for enabling cleveref support, use "cleveref"
+%for enabling autoref support, use "autoref"
+%for anonymousing the authors (e.g. for double-blind review), add "anonymous"
+%for enabling thm-restate support, use "thm-restate"
+%for enabling a two-column layout for the author/affilation part (only applicable for > 6 authors), use "authorcolumns"
+%for producing a PDF according the PDF/A standard, add "pdfa"
+
+%\pdfoutput=1 %uncomment to ensure pdflatex processing (mandatatory e.g. to submit to arXiv)
+%\hideLIPIcs  %uncomment to remove references to LIPIcs series (logo, DOI, ...), e.g. when preparing a pre-final version to be uploaded to arXiv or another public repository
+
+%\graphicspath{{./graphics/}}%helpful if your graphic files are in another directory
+
+\bibliographystyle{plainurl}% the mandatory bibstyle
+
+\title{Table Constraints for Integer Programming}
+
+%\titlerunning{Dummy short title} %TODO optional, please use if title is longer than one line
+% Hendrik Bierlee \and Tias Guns \and Peter J. Stuckey
+\author{Hendrik Bierlee\footnote{Corresponding author}}{KU Leuven, Belgium}{henk.bierlee@kuleuven.be}{https://orcid.org/0000-0001-6766-5435}{}
+%TODO mandatory, please use full name; only 1 author per \author macro; first two parameters are mandatory, other parameters can be empty. Please provide at least the name of the affiliation and the country. The full address is optional. Use additional curly braces to indicate the correct name splitting when the last name consists of multiple name parts.
+
+\author{Wout Piessens}{KU Leuven, Belgium}{wout.piessens@kuleuven.be}{https://orcid.org/0009-0005-5608-2097}{}
+
+\author{Tias Guns}{KU Leuven, Belgium}{tias.guns@kuleuven.be}{https://orcid.org/0000-0002-2156-2155}{}
+
+\author{Peter J. Stuckey}{Monash University, Melbourne, Australia \and OPTIMA ITTC, Melbourne, Australia}{peter.stuckey@monash.edu}{https://orcid.org/0000-0003-2186-0459}{}
+
+\authorrunning{H. Bierlee, W. Piessens, T. Guns, and P.\,J. Stuckey} %TODO mandatory. First: Use abbreviated first/middle names. Second (only in severe cases): Use first author plus 'et al.'
+
+\Copyright{Hendrik Bierlee, Wout Piessens, Tias Guns, and Peter J. Stuckey} %TODO mandatory, please use full first names. LIPIcs license is "CC-BY";  http://creativecommons.org/licenses/by/3.0/
+
+
+
+\keywords{Table constraints, integer programming, cut generation, modelling} %TODO mandatory; please add comma-separated list of keywords
+
+\category{} %optional, e.g. invited paper
+
+\relatedversion{} %optional, e.g. full version hosted on arXiv, HAL, or other respository/website
+%\relatedversiondetails[linktext={opt. text shown instead of the URL}, cite=DBLP:books/mk/GrayR93]{Classification (e.g. Full Version, Extended Version, Previous Version}{URL to related version} %linktext and cite are optional
+
+%\supplement{\url{https://github.com/ML-KULeuven/table-constraints-for-integer-programming}}%optional, e.g. related research data, source code, ... hosted on a repository like zenodo, figshare, GitHub, ...
+\supplementdetails[linktext={link},subcategory={Source Code}]{Software}{https://github.com/ML-KULeuven/table-constraints-for-integer-programming} %linktext, cite, and subcategory are optional
+
+\funding{This research is partly funded by the European Research Council (ERC) under the EU Horizon 2020 research and innovation programme (Grant No 101002802, CHAT-Opt), by the Research Foundation-Flanders (FWO-Vlaanderen, G020525N), and by the Australian Government through the Australian Research Council Industrial Transformation Training Centre in Optimisation Technologies, Integrated Methodologies, and Applications (OPTIMA)}%optional, to capture a funding statement, which applies to all authors. Please enter author specific funding statements as fifth argument of the \author macro.
+
+%\acknowledgements{I want to thank \dots}%optional
+
+%\nolinenumbers %uncomment to disable line numbering
+
+
+
+%Editor-only macros:: begin (do not touch as author)%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\EventEditors{Nicolas Beldiceanu}
+\EventNoEds{1}
+\EventLongTitle{32nd International Conference on Principles and Practice of Constraint Programming (CP 2026)}
+\EventShortTitle{CP 2026}
+\EventAcronym{CP}
+\EventYear{2026}
+\EventDate{July 20--23, 2026}
+\EventLocation{Lisbon, Portugal}
+\EventLogo{}
+\SeriesVolume{379}
+\ArticleNo{37}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\nolinenumbers
+
+% \documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+% \usepackage[english]{babel}
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+% \usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{xspace}
+\usepackage{tikz}
+\usetikzlibrary{trees}
+\usepackage{siunitx}
+\sisetup{detect-weight=true,group-four-digits=true}
+
+% \usepackage[colorlinks=true, allcolors=blue]{hyperref}
+% \usepackage{xcolor}
+\usepackage[all]{xy}
+
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{svg}
+\usepackage{booktabs}
+
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{lemma}{Lemma}
+% \newcounter{excount}
+%\newenvironment{example}{\begin{quote}\refstepcounter{excount}\textbf{Example~\arabic{excount}:}}{\hfill$\qed$\end{quote}}
+
+% \usepackage{etoolbox}
+% \AtEndEnvironment{example}{\lipicsEnd}  % add the "_|" at the end of examples
+
+\usepackage[nopostdot,nogroupskip,nonumberlist]{glossaries}
+\glsdisablehyper
+
+% acronyms
+\newacronym{sat}{SAT}{\emph{Boolean Satisfiability}}
+\newacronym{maxSat}{maxSAT}{\emph{Maximum Satisfiability}}
+\newacronym{pb}{PB}{\emph{Pseudo-Boolean}}
+\newacronym{cp}{CP}{\emph{Constraint Programming}}
+\newacronym{tsp}{TSP}{\emph{Travelling Salesperson Problem}}
+\newacronym{mdd}{MDD}{\emph{Multivalued Decision Diagram}}
+\newacronym{bdd}{BDD}{\emph{Binary Decision Diagram}}
+% \newacronym{il}{IL}{\emph{Integer Linear}}
+\newacronym{csp}{CSP}{\emph{Constraint Satisfaction Problem}}
+\newacronym{cop}{COP}{\emph{Constrained Optimisation Problem}}
+\newacronym{mip}{MIP}{\emph{Mixed Integer Programming}}
+\newacronym{ilp}{ILP}{\emph{Integer Linear Programming}}
+\newacronym{lp}{LP}{\emph{Linear Programming}}
+\newacronym{lbbd}{LBBD}{\emph{Logic-Based Benders Decomposition}}
+\newacronym{mus}{MUS}{\emph{Minimal Unsatisfiable Subset}}
+
+\newcommand{\milp}{\gls{ilp}\xspace}
+\newcommand{\relaxation}{\acrshort{lp} relaxation\xspace}
+
+\input{prelude}
+
+
+
+\ccsdesc[500]{Software and its engineering~Constraint and logic languages}
+\ccsdesc[500]{Mathematics of computing~Solvers}
+\ccsdesc[500]{Applied computing~Operations research}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Global constraints are a central concept in \gls{cp}, which allows modellers to compactly express complex relations, and allows solvers to efficiently handle them.
+Table constraints have especially been well-studied as they can express arbitrary finite relations, and are extensively used in \gls{cp} benchmarks.
+In this paper we study how to best deal with table constraints when using \milp solvers.
+We study two paradigms: linear encodings, and a \nolbbd{logic-based Benders decomposition}{lazy cut generation approach}.
+For the encoding we propose a novel 
+\acrshort{mdd}-based flow encoding.
+For the \nolbbd{Benders decomposition}{cut generation}, in which lazy constraints are generated on-demand during branch-and-cut search, we investigate different ways of generating such integer and fractional \textit{cuts} as well as how to strengthen them through shrinking and cut lifting.
+We experimentally compare the different approaches on \gls{cp} competition instances with a wide variety of table constraints, showing clear benefits over the standard integer encoding.
+
+\iffalse  % Previous version
+Table constraints are heavily used in \gls{cp} models since they allow the expression of arbitrary finite relations.
+While solving \gls{cp} models using \milp solvers can be done by linearization of the constraints, the encoding of tables has not been extensively studied.
+Furthermore, tables can be so large that they require a prohibitive number of number of linear constraints to represent, which are slow to encode, post, and especially solve.
+In \milp, an alternative to an up-front encoding is \acrlong{lbbd}, or \textit{cut generation}, in which constraints are partially encoded only if they are violated.
+In this paper we study various table encodings, as well as the application of cut generation to table constraints.
+An experimental evaluation shows the impact of solving behaviour for \gls{cp} competition instances with a variety of table constraints.
+\fi
+\end{abstract}
+
+\glsresetall
+
+
+
+
+\section{Introduction}
+\label{sec:intro}
+
+Table constraints~\cite{GAC,STR2,rolandtable} are possibly the most well studied form of global constraint in the field of constraint programming. 
+Indeed, Mackworth's original work on arc consistency~\cite{MACKWORTH197799} for (two variable) tables is 
+one of the papers that originated the field.
+A (positive) table constraint allows us to specify an arbitrary finite relation among any number of variables, simply by listing all the possible solutions allowed. 
+
+\begin{example}\label{ex:running}
+Consider the following table constraint \texttt{table}($\hat{x}, T)$ over a sequence of integer variables $\hat{x} \equiv \sequence{x_1, x_2, x_3}$ and integer matrix $T \equiv \sequence{
+\sequence{2,1,1},
+\sequence{3,2,2},
+\sequence{4,3,3},
+\sequence{1,2,3},
+\sequence{2,1,2}
+}$.
+\begin{equation*}
+\begin{array}{rrr}
+x_1 & x_2 & x_3 \\ \hline
+2 & 1 & 1 \\
+3 & 2 & 2 \\
+4 & 3 & 3 \\
+1 & 2 & 3 \\
+2 & 1 & 2 
+\end{array}
+\end{equation*}
+The only solutions to the table constraint are
+$x_1 = 2 \wedge x_2 = 1 \wedge x_3 = 1$,
+$x_1 = 3 \wedge x_2 = 2 \wedge x_3 = 2$,
+$x_1 = 4 \wedge x_2 = 3 \wedge x_3 = 3$,
+$x_1 = 1 \wedge x_2 = 2 \wedge x_3 = 3$,
+$x_1 = 2 \wedge x_2 = 1 \wedge x_3 = 2$; corresponding to the five rows in the table.
+\end{example}
+In this paper we only examine \emph{positive tables}, where the table represents the set of solutions for the variables constrained.
+Table constraints arise naturally in many discrete optimisation problems, for example, in configurations where the capabilities and compatibilities of different components are naturally expressible using tables, and they often appear in \gls{cp} solver competition such as the XCSP3 competition ~\cite{audemard2025proceedings2025xcsp3competition}.
+
+While there have been many papers about how best to implement tables for constraint programming solvers and for propagating them, \eg \cite{GAC,STR2}, there has been little attention to how to implement tables in \milp solvers.
+The widespread use of \emph{solver-independent} modelling systems~\cite{minizinc,guns2019increasing} has meant that we now often write a high level \gls{cp} model including \ttable constraints, which can then subsequently be solved by an \milp solver; hence it is worth thoroughly investigating how to do this in the best way.
+
+In this paper we investigate different approaches to implementing (positive) table constraints for \milp solvers. The contributions of the paper are:
+\begin{itemize}
+    \item The first experimental comparison of different table encodings to \milp we are aware of.
+    \item A novel approach to implementing tables in \milp using \nolbbd{logic-based Benders decomposition}{cut generation}.
+    \item An investigation of different choices available during 
+    \nolbbd{logic-based Benders decomposition}{cut generation}. 
+    \item Experiments illustrating how different encodings perform, and when \nolbbd{logic-based Benders decomposition}{cut generation} becomes beneficial.
+\end{itemize}
+
+Note that all technical proofs are included in the appendix (see~\cref{appendix:proofs}).
+
+
+\section{Preliminaries}
+\label{sec:prelim}
+
+This section will cover preliminaries and background.
+We will make use of \emph{sequence notation} defined as follows: let $\sequence{}$ represent the empty sequence, and $\sequence{s_1, s_2, \ldots, s_n}$ represent a sequence of $n$ objects $s_1, s_2, \ldots, s_n$ in order.
+We use $\pp$ for sequence concatenation, \eg $[1,2] \pp [5,2] = [1,2,5,2]$.
+Given a sequence $s$, a prefix of $s$ is any sequence $p$ where there exists a sequence $f$ such that $s = p \pp f$.
+We denote by $pre(s)$ the set of all prefixes of $s$, and extend this notation to sets of sequences $S$, $pre(S) = \bigcup_{s \in S} pre(s)$. 
+
+\subsection{Constraint Programming (CP)}
+
+We cover the basics of \gls{cp} following \citeNoun{Rossi}{rossi_handbook_2006}.
+We define a \gls{csp} $P \equiv (\mathcal{X},D,\mathcal{C})$ as a tuple of integer variables $\mathcal{X}$, with initial domains defined by $D$, and $\mathcal{C}$ a set of constraints. 
+A constraint $c$ with scope $scope(c) = [x_1, \ldots, x_n], x_i \in \mathcal{X}$ is defined (implicitly) as a  set of solutions of the form
+$[\assignment_1, \ldots, \assignment_n]$ for its variable sequence.
+A \emph{solution} of $P$ is a valuation $\theta$ over variables $\mathcal{X}$ such that $\theta(x) \in D(x), x \in \mathcal{X}$ and $[\theta(x_1), \ldots, \theta(x_n)] \in c$ for all $c \in \mathcal{C}$ where $scope(c) = [x_1, \ldots, x_n]$. 
+
+
+\subsection{Integer Linear Programming (ILP)}
+\label{sec:background:ilp}
+
+A finite-domain integer linear constraint has the form $\sum_{i=1}^n a_{i} x_{i}\ \#\ k$ where $a_{i}, k$ are integer constants, $x_{i}$ are finite-domain integer variables, and comparator $\# \in \{ <, \leq, =, \geq, > \}$.
+An \milp model has exclusively linear constraints and a linear objective.
+We can \textit{encode} a \gls{csp} $P$ as an \milp $Q$ by replacing the non-linear constraints in $P$ with linear constraints in $Q$. 
+Finding an effective encoding of \gls{cp} constraints into \milp{} is challenging but important, as it can have a large impact on the solver's performance.
+An encoding often requires the introduction of additional variables, usually 01 integer variables to express complex constraints.
+See \citeNoun{Belov}{belov_improved_2016} for a discussion on encoding \gls{cp} to \milp. 
+
+When encoding constraints to \milp, it often becomes useful to create a \textit{domain encoding} (also known as direct, or unary encoding) of an integer variable $x_i$, where each domain value $j$ that $x_i$ can take is represented as a newly introduced \textit{binary} (Boolean, 01) variable, $\beq{x_i}{j}$~\cite{refalo_linear_2000} which holds iff $x_i = j$:
+
+\begin{subequations}
+    \label{eq:domain}
+    \begin{align}
+        \sum_{j \in D(x_i)} \beq{x_i}{j} = 1 \label{eq:eo} \\
+        \sum_{j \in D(x_i)} j \beq{x_i}{j} = x_i \label{eq:channel} 
+    \end{align}
+\end{subequations}
+
+\cref{eq:eo} enforces that exactly one value is selected for $x$.
+Depending on the encoding choices, the original integer variable $x_i$ may be replaced entirely by its encoding variables.
+If instead $x_i$ is in scope of other constraints in $Q$, it needs to be \textit{channelled} to its encoding by \cref{eq:channel}.
+
+
+An alternative to encoding a constraint $c$ for \milp{} to linear constraints is to enforce the constraint by \emph{(lazy) cut generation}. 
+This is a form of (logic-based) Benders decomposition~\cite{DBLP:journals/ior/Hooker07}, where when a solution $\hat{v}$ of the relaxed problem is found, 
+we test if it satisfies the constraint $c$.
+If so, nothing further is done for $c$.
+If not, then the solution $\hat{v}$ is called a \textit{counterexample}.
+We add a linear constraint \emph{cut}, which eliminates the counterexample, and is implied by $c$ (so does not remove any solutions of $c$). 
+Solving terminates when we find an optimal solution $\hat{v}^{*}$ which satisfies $c$.
+Cut generation is especially effective when a full encoding would require many constraints, such as the exponential number of sub-tour elimination constraints of a \gls{tsp}.
+\milp{} solvers support cut generation through callbacks, though this typically comes at the cost of more limited pre-solving being possible. 
+
+Linear constraints or generated cuts can be stronger or weaker.
+Given lower and upper bounds $l_i$ and 
+$u_i$ on each integer variable $x_i \in \mathcal{X}$
+(in an encoding of a \gls{csp} $l_i = \min D(x_i)$ and
+$u_i = \max D(x_i)$); 
+we say a linear constraint 
+$c_1 \equiv \sum_{i} a_i x_i \leq \rhs$ is
+\emph{stronger} than another linear constraint
+$c_2 \equiv \sum_{i} a'_i x_i \leq \rhs'$ if every real solution
+of $c_1 \wedge \bigwedge_{x_i \in \mathcal{X}} (l_i \leq x_i \wedge x_i \leq u_i)$, is also a real solution of 
+$c_2 \wedge \bigwedge_{x_i \in \mathcal{X}} (l_i \leq x_i \wedge x_i \leq u_i)$. 
+A stronger constraint leaves fewer solutions in the real hypercube defined by the original bounds.
+
+
+
+\subsection{The \texttt{table} constraint}
+\label{sec:background:tables}
+
+The table constraint \texttt{table}($\hat{x}, T$),
+where $\hat{x}$ is a vector of length $k$ and $T$ is a matrix of $k$ columns and $m$ rows (a sequence of $m$ sequences of length $k$), enforces that the vector of variables $\hat{x}$ take values given by one of the rows in $T$ (see \cref{ex:running}). 
+Table constraints are a highly flexible way of specifying arbitrary constraints,
+and their use and implementation in \gls{cp} solvers has been heavily investigated~\cite{GAC,STR2,rolandtable}.
+
+More formally,
+a table $T$ with $m$ rows and $k$ columns is a matrix of integer values 
+$T_{ri}, r \in 1..m, i \in 1..k$.
+A 01 or \emph{binary} table $T$ is a table where $T_{ri} \in \{0,1\}$.
+Define ${T}_i$ to be $i^{th}$ column of $T$.
+If $T$ is a binary table, we will abuse notation and treat this as a set of indices $T_i \equiv \{ r ~|~ r \in 1..m, T_{ri} = 1\}$.
+Define $\hat{T}_r$ to be the $r^{th}$ row of $T$.
+If $T$ is a binary table we will again abuse notation and treat this as a set of indices of columns, $\hat{T}_r = \{ i ~|~ i \in 1..k, T_{ri} = 1\}$.
+Similarly a vector 
+$\hat{x}$ of 01 values will sometimes be treated as a set of indices of columns.
+
+
+
+We can simplify a table constraint \texttt{table}($\hat{x}, T$) to define an equivalent constraint system.
+First we can remove all duplicate rows of $T$.
+Second we can assume all variables in $\hat{x}$ are unique.
+Suppose $x_i = x_j, i < j$ then we can build table $T'$ which removes column $j$ and removes all rows $r$ where $T_{r,i} \neq T_{r,j}$.
+The constraint $\ttable(\omitVarJ, T')$ is equivalent to the original table.
+
+Similarly we can remove any \textit{constant} column $j$ which contains only one value $T_{rj} = d, \forall r$ in a table $T$.
+The constraints 
+\ttable($\omitVarJ, T') \wedge x_j = d$, where $T'$ is $T$ with column $j$ removed, is equivalent to the original table constraint. 
+
+\section{Encoding table constraints to linear constraints}
+\label{sec:encoding}
+
+There are various ways to encode an integer table constraint $\texttt{table}(\hat{x},T)$ to \milp. 
+
+\subsection{Integer encoding}
+The integer variables can be used directly in a column-wise fashion as proposed by \citeNoun{Belov}{belov_improved_2016}.
+This encoding, to which we will refer as the \baseGleb encoding, adds binary row variables $r_i, 1 \leq i \leq m$, 
+where $r_i = 1$ enforces that the $i^{th}$ row is the chosen solution, by encoding the table constraint $\ttable(\hat{x},T)$ as:
+
+\begin{eqnarray}
+\sum_{l \in 1..m} r_l  &= &1 \label{simp:enc:1} \\
+\sum_{l \in 1..m} T_{li} r_l &=& x_i, \quad\quad i \in 1..k  
+\label{simp:enc:2}
+\end{eqnarray}
+
+The advantages of \baseGleb is that it is compact and its \relaxation enforces that each $x_i$ only takes values in the range $\interval{\min(T_i)}{\max(T_i)}$. 
+It introduces $m$ new 01 variables and $k+1$ linear equations with at most $m+1$ terms per equation.
+It is used to encode tables to \milp by default in MiniZinc~\cite{minizinc}.
+
+\begin{example}
+    The \baseGleb encoding of the table in \cref{ex:running} is 
+    \begin{equation*}
+        \begin{array}{rrrrrcl}
+        r_1 &+ r_2& + r_3& + r_4& + r_5 &= &1 \\
+        2 r_1& + 3r_2& + 4 r_3& + r_4& + 2r_5 &=& x_1 \\
+        r_1& + 2r_2& + 3 r_3& + 2r_4&+ r_5 &=& x_2 \\
+        r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& x_3\\
+        \end{array}
+    \end{equation*}
+\end{example}
+
+\subsection{Booleanized encoding}
+\label{sec:encoding:bool}
+
+A Booleanized adaption of \baseGleb is proposed by Petit~\cite{petit}.
+The original formulation also supports reification and negation.
+We limit ourselves to the positive table encoding, which we will call \baseBool.
+It uses the 01 table and the direct encoding of the integer variables.
+Since table constraints are typically used over \textit{nominal} integers whose value represent discrete objects, it is likely that other constraints will similarly reason over specific values of the integers (\ie $x_i = v$), and hence require the direct encoding as well.
+
+After introducing the Boolean encoding of the integers $\hat{x}$, we can rewrite the table constraint $\texttt{table}(\hat{x},T)$
+into the equivalent Boolean 01 table constraint $\ttable(\hat{b}, \btable)$ with Boolean column variables $\hat{b}$ and 01 table $\btable$ (with $\cols$ = $\sum_{i=1}^{k} |D(x_i)|$ columns and still $m$ rows):
+
+\begin{equation}
+  \ttable( \sequenceComp{\beq{x_i}{j}}{ i \in \interval{1}{k}, j \in D(x_i)},  
+  \sequenceComp{ \sequenceComp{ \iverson{T_{li} = j} }{ i \in 1..k, j \in D(x_i) } }{ l \in 1..m})
+\end{equation}
+where we use Iverson brackets to convert the 
+conditions $T_{li} = j$ to 0 or 1 (\eg $\iverson{0 \leq -1} = 0$).
+Every column is now a Boolean variable $\beq{x_i}{j}$.
+We introduce the notation $p()$ to partition the columns by their \emph{parent integer variable index}, \ie $p(\beq{x_i}{j}) = i$.
+We can now encode the 01 table as in the previous section by introducing Boolean row variables $r_l, l \in 1..m$ and constraints
+
+\begin{eqnarray}
+\sum_{l \in 1..m} r_l  &= &1 \label{eq:bin:1} \\
+\sum_{l \in 1..m} \iverson{T_{li} = j} r_l &=& \beq{x_i}{j}, \quad\quad i \in 1..k, j \in D(x_i)   \label{eq:bin:2}
+\end{eqnarray}
+
+\begin{example}
+\label{ex:binary}
+\label{ex:table}
+Consider the table constraint of \cref{ex:running}
+defined over three integer variables $x_1, x_2, x_3$ with domains 
+$D(x_1) = 1..4$ and $D(x_2)= D(x_3) = 1..3$.
+The Boolean encoding of the variables introduces new Boolean variables $\beq{x_i}{j}, i \in 1..3, j \in D(x_i)$.
+We will use this notation to represent the Boolean variables themselves.
+The Boolean encoding of the variables introduces the \texttt{exactly-one} constraints 
+$\be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} = 1 \land \ldots$
+and channelling constraints $x_1 = \be{1}{1} + 2 \be{1}{2} + 3 \be{1}{3} + 4\be{1}{4} \land \ldots$
+for each of the integer variables.
+The Boolean version of the table $\btable{}$  is:
+
+   \begin{equation*}
+   \begin{array}{l|rrrr|rrr|rrr}
+&  {\besml{1}{1}} & \besml{1}{2} & \besml{1}{3} & \besml{1}{4} & \besml{2}{1} & \besml{2}{2} & \besml{2}{3} & \besml{3}{1} & \besml{3}{2} & \besml{3}{3} \\ \hline
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0 \\
+&   0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0 \\
+&   0   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1 \\
+&   1   & 0   & 0   & 0   & 0   & 1   & 0   & 0   & 0   & 1 \\
+&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 0   & 1   & 0 \\ \hline
+p& 1   & 1   & 1   & 1   & 2   & 2   & 2   & 3   & 3   & 3    \\
+   \end{array}
+   \end{equation*}
+   Note the columns are partitioned by $p$ (here, $\{\be{1}{1}, \be{1}{2}, \be{1}{3}, \be{1}{4}\}$, $\{\be{2}{1}, \be{2}{2}, \be{2}{3}\}$, and $\{\be{3}{1},\be{3}{2},\be{3}{3}\}$.
+Notice how in each row exactly one value in each partition holds.   
+The linear encoding of the Boolean table yields
+\begin{equation*}
+\begin{array}{rrrrrcl}
+r_1 &+ r_2& + r_3& + r_4& + r_5 &= &1 \\
+&&&r_4 && = & \be{1}{1} \\
+r_1 &&&& +r_5 & = &\be{1}{2} \\
+&&&&& \vdots & \\
+& r_2 &&& +r_5 & = & \be{3}{2} \\
+&& r_3 & + r_4 && = & \be{3}{3}
+\end{array}
+\end{equation*}
+\end{example}
+
+The Booleanized encoding introduces $m$ 01 row variables
+and $\cols+1$ linear equations with $m+1$ terms for~\cref{eq:bin:1}, and for each partition $i \in 1 \dots k$, $|D(x_i)|$ constraints of type~\cref{eq:bin:2} containing at most $m + |D(x_i)|$ terms in total. In that sense it is not much larger than the integer encoding, assuming we already have the domain encoding of the integers.
+\baseBool is \emph{equivalent} to \baseGleb  on the original variables $\hat{x}$.
+Any real solution of the Booleanized encoding generates a real solution of \baseGleb, and vice versa.
+
+\begin{theorem}
+    Given a table constraint $\texttt{table}(\hat{x},T)$.
+    The real solutions of variables $\hat{x}$ for \baseGleb and 
+    \baseBool together with domain encoding constraints \cref{eq:eo,eq:channel} are identical.
+\end{theorem}
+
+The advantage of the Booleanized encoding is that, as long as the binary variables are used elsewhere in the model, they can generate a stronger model.
+\begin{example}
+  Consider the table of \cref{ex:running} where branching has forced $\be{1}{2}  = 0$ and
+  $\be{3}{3} = 0$. Then the Booleanized 
+  encoding sets $r_2 = 1$, and
+  $x_1 = 3$, $x_2 = 2$ and $x_3 = 2$.
+  With \baseGleb we may know that $x_3 \leq 2$ but we cannot represent $x_1 \neq 2$ linearly. The real solutions of the resulting polytope do not collapse to a single solution.
+\end{example}
+
+\subsection{MDD-based flow encoding}
+\label{sec:encoding:mdd}
+
+A table can be encoded more compactly as a \gls{mdd}~\cite{DBLP:journals/constraints/ChengY10}.
+From this, an \gls{mdd} can be encoded into linear constraints using a flow formulation, where each \gls{mdd} node is associated with a constraint enforcing that the sum of incoming edge variables equals the sum of outgoing edge variables, for a total flow of 1.
+The advantage of encoding an \gls{mdd} with a flow formulation is that it is a flow network using only linear constraints, and the resulting linear encoding is \emph{totally unimodular}~\cite{ahuja1993network} meaning if there were no other constraints, then all extreme points of the polytope of the LP relaxation are integer points.
+The case of no other constraints is unlikely in practice, but it is still likely to make \milp solving easier.
+The greatest advantage of the \gls{mdd} encoding is that it can can be \emph{exponentially smaller} than the Booleanized encoding, 
+since the MDD representing a table can be exponentially smaller than the original table.
+
+The \gls{mdd} for $T$ has nodes for each (equivalence class of a) row prefix in $T$, where prefixes which share exactly the same set of completing suffixes in $T$ share the same node.
+Let $pre(T)$ be all prefixes of rows occurring in $T$.
+Define the prefix equivalence classes of prefix $s$,
+$E(s)$ 
+as $\{ p \in pre(T) ~|~ \{ f ~|~ p \pp f \in T\} = \{ f ~|~ s \pp f \in T\}\}$, that is all prefixes that share the same set of completing suffixes are in the same equivalence class. 
+Note that by this definition all complete rows $\hat{T}_r \in T$ are in the same equivalence class $E(\hat{T}_r)$, which we label $snk$.
+The graph encoding the \gls{mdd} is defined by
+vertices $VM = \{ E(s)~|~ s \in pre(T) \}$, 
+and edges $EM$ defined as follows.
+For each prefix $s$ of row $\hat{T}_r$ 
+there is an edge labelled $\be{i}{j}$ from node
+$E(s)$ to $E(s \pp [j])$ in $EM$ where $s \pp [j]$ is the next longest prefix of $\hat{T}_r$, and $i$ is the length of $s \pp [j]$. 
+
+
+\cref{fig:mdd} shows the MDD for~\cref{ex:running}.
+Note that the paths through the \gls{mdd} are exactly
+$\{ [2,1,1], [2,1,2], [1,2,3], [4,3,3], [3,2,2]\}$ making it isomorphic to the table, in terms of \emph{integer solutions}.
+Note also that prefixes $[1,2]$ and $[4,3]$ share the same set of suffixes in the table ([3]) and hence share a node in the \gls{mdd}, as well as all the complete sequences (which share suffix []). 
+
+
+
+
+
+\begin{figure}[H]
+\centering
+\mddDiagram{15mm}{12mm}
+\caption{MDD encoding of \cref{ex:running}.}
+\label{fig:mdd}
+\end{figure}
+
+The algorithm to convert a table to a reduced \gls{mdd}, as in~\cref{fig:mdd}, runs in $O(m \times k)$~\cite{DBLP:journals/constraints/ChengY10}. 
+
+Since a table constraint requires that exactly one row is active, we can encode the \gls{mdd} as a flow network, where the flow from the root to the sink is exactly 1. This flow network directly leads to integer linear constraints. Since the \gls{mdd} has at most one node per entry in the integer table (apart from the source node), the number of flow constraints is $O(m \times k)$.
+We create a set $EV$ consisting of a 01 edge variable $e_{(s',j)}$ for each directed edge $(E(s),E(s \pp [j]))$ where
+we assume $s' = \min E(s)$ is the smallest representative of the equivalence class.
+The variable $e_{(s',j)}$ indicates whether there is a unit flow on the edge.
+Each edge variable $e_{(s, j)}$ is associated with a supporting Boolean variable $supp(e_{(s,j)}) = \beq{x_i}{j}$, where $i = length(s) + 1$. 
+
+The encoding is
+\begin{eqnarray}
+\sum_{(E(s),E(s \pp [j])) \in EM} e_{(\min E(s),j)} \nonumber \\ 
+- \sum_{(E(s \pp [j]),E(s \pp [j,k])) \in EM} e_{(\min E(s \pp [j]), k)} & = & 0, \quad E(s \pp [j]) \in VM \label{eq:flowbalance} \\
+\sum_{(E([]),E([j])) \in EM} e_{([],j)} & = & 1 \label{eq:in} \\
+\sum_{(E(s),E(s \pp [j])) \in EM, E(s \pp [j]) = snk} e_{(\min E(s),j)} & = &1 \label{eq:snk}\\
+\sum_{e_{(s,j)} \in EV, supp(e_{(s,j)}) = x_i} e_{(s,j)} & =& \beq{x_i}{j}, \quad i \in 1..k, j \in D(x_i)
+\label{eq:bool}
+\end{eqnarray}
+
+It consists of flow balance constraints for each internal node, requiring that the flow in equals the flow out (\cref{eq:flowbalance}). 
+We require one unit to flow out of node $[]$ 
+(\cref{eq:in}) and one
+unit to flow into node $snk$ (\cref{eq:snk}). 
+We add constraints (\cref{eq:bool}) defining each
+$\beq{x_i}{j}$: since every edge variable has a supporting encoding variable, we channel them by requiring that the encoding variable is true iff one of the edges it supports has a unit flow of one.
+
+
+\begin{example} \label{ex:flow}
+For the \gls{mdd} shown in \cref{fig:mdd}
+we generate the following linear constraints:
+
+\begin{equation*}
+\begin{array}{rcl@{~~}l}
+\be{1}{2} &= &\be{2}{1} & ([2])\\
+\be{2}{1} &= &\be{3}{1} + e_{([2,1],2)} &([2,1]) \\
+\be{1}{1} &= &e_{([1],2)} & ([1])\\
+e_{([1],2)} + \be{2}{3} &=& \be{3}{3} & ([1,2], [4,3]) \\
+\be{1}{4} & = & \be{2}{3} & ([4]) \\
+\be{1}{3} &=& e_{([3],2)}  & ([3])\\
+e_{([3],2)} &=& e_{([3,2],2)} & ([3,2])\\
+\be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} &= &1 & ([]) \\
+e_{([2,1],2)} + \be{3}{1} + \be{3}{3} + e_{([3,2],2)} &=& 1 & (snk)\\
+e_{([2,1],2)} + e_{([3,2],2)} & = &\be{3}{2} \\
+e_{([1],2)} + e_{[3],2)} & = &\be{2}{2} \\
+\end{array}
+\end{equation*}
+
+Note that we obtain a larger number of constraints on the table of~\cref{ex:running} than for \baseGleb and \baseBool, but the constraints typically have fewer terms. We have applied a post-processing simplification in~\cref{ex:flow} where an edge variable supported by a single encoding variable is replaced by that encoding variable. Additionally, for \gls{mdd} nodes $E(s \pp [j])$ with only one incoming and outgoing edge $e_{(\min E(s), j)}$ and $e_{(\min E(s ++ [j]), k)}$, we can remove the flow constraint and substitute $e_{(\min E(s), j)}$ for $e_{(\min E(s ++ [j]), k)}$ everywhere in the encoding: this is omitted from~\cref{ex:flow} for clarity.
+\end{example}
+
+We can show for the \relaxation that the solutions of \baseMdd and \baseBool are equivalent.  
+
+\begin{theorem}
+    The solutions of the \relaxation of the \gls{mdd} encoding of \texttt{table}($\hat{x},T$) on the variables $\beq{x_i}{j}$ are the same as those for the \baseBool encoding.
+\end{theorem}
+
+Given a column permutation $\pi$, then $\texttt{table}(\hat{x},T)$ is equivalent to $\texttt{table}(\pi(\hat{x}),\pi(T))$ .
+For the previous encodings, the order of columns makes no difference, but for an \gls{mdd} it can have a significant effect on its size.
+However, finding an optimal column ordering that minimizes \gls{mdd} size is NP-complete~\cite{DBLP:journals/tc/BolligW96}. 
+Instead, we consider two column ordering heuristics.
+The first, \baseMddInput, uses the original ordering.
+The second, \baseMddDomIncr, orders the columns $i \in 1, \dots, k$ by increasing domain size of the associated variable $x_i, i \in 1, \dots, k$.
+The intuition behind \baseMddDomIncr is that for variables with smaller domains, there are fewer choices to make, potentially causing more paths starting from the source to be merged.\footnote{We experimented with other orderings, \eg based on Fiedler~\cite{Fiedler1975}, but this did not notably improve.}
+
+
+\section{A cut generator for \texttt{table} constraints}
+\label{sec:cuts}
+
+
+
+In \milp, \nolbbd{\acrfull{lbbd}}{cut generation} (see \cref{sec:background:ilp}) has been successfully applied when an exponential number of constraints is required~\cite{DBLP:journals/ior/Hooker07}.
+Unlike the exponential number of constraints which are required for e.g. \gls{tsp} subtour elimination, all table encodings require at most a linear number of constraints in the size of the table.
+However, because tables can still be prohibitively large, it seems worthwhile to consider a \emph{lazy} decomposition of \texttt{table} constraints.
+
+We will now explore how to build an efficient cut generator for \texttt{table} constraints. 
+
+\begin{example}
+\label{ex:initial}
+   Consider the table of \cref{ex:running} again.
+Suppose the solver found an assignment $\assignment = \sequence{2,2,2}$ and calls the cut generator.
+The row does not appear in the table so $\assignment$ is a counterexample.
+The simplest way to generate a cut is to forbid this assignment: 
+$\neg (\be{1}{2} \wedge \be{2}{2} \wedge \be{3}{2})$ or equivalently the linear constraint
+$\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$.
+A better cut is
+$\be{1}{2} + \be{2}{2} \leq 1$, since it also cuts off the counterexample without cutting off any row in the table.
+The latter is beneficial because it is strictly stronger, \eg it also cuts off non-solutions $\sequence{2,2,1}$ and $\sequence{2,2,3}$ rather than only $\sequence{2,2,2}$.
+\end{example}
+
+Note that the use of the Boolean encoding variables $\be{i}{j}$ is vital for cut generation since without these variables there may be no valid cut. 
+For example, there is no linear constraint $a_1 x_1 + a_2 x_2 + a_3 x_3 \leq \rhs$ over the integer variables $x_i$ which cuts off solution $\sequence{2,2,2}$ without cutting off a row in the table of \cref{ex:running}.
+The Boolean encoding variables always admit a cut, \eg forbidding the complete assignment.
+
+\subsection{Initial cut generation}
+\label{sec:cuts:initial}
+
+The cut generation algorithms will operate on a 01 table $\btable$ as exemplified in \cref{ex:binary}, with a 01 counterexample $\assignment$ where $\assignment_\col$ contains the value of the Boolean encoding variable $b_{\col}$ of 01 table column $\col$.
+We will show how to generate a cut of the form $\sum_{\col \in X} a_\col b_\col \leq \rhs$ over a subset of the columns/Boolean variables $X \subseteq \interval{1}{\cols}$.
+For now, the counterexample is assumed to be a \textit{discrete} 01 assignment, $\assignment \in \Bools^\cols$, \textit{fractional} counterexamples will be discussed in \cref{sec:cuts:fractional}.
+For now, our cuts will have $a_\col=1, \rhs=|X|-1$, so they are defined by $X$ alone.
+This type of cut forces at least one $b_\col$ to false, and thus encodes a logical disjunction of negative literals, $\bigvee_{\col \in X} \neg b_\col$.
+To generate the first cut from \cref{ex:initial}, we define $C(\assignment,l) = \setComp{\col}{\assignment_\col > 0 \wedge p(\col) = l}$ as all the non-zero variables/columns in partition $l$ of $\assignment$.
+For discrete 01 counterexamples, $C$ thus returns the single non-zero Boolean variable per partition.
+To generate the cut, we collect $X = \setComp{\col}{l \in \interval{1}{k}, \col \in C(\assignment, l)}$.
+This cut adds all variables assigned non-zero in $\assignment$; it cuts away the counterexample without cutting any assignment in the table (as none of its rows correspond to $\assignment$).
+
+\cref{lst:generate} shows how we can generate stronger cuts of fewer terms by instead starting from an empty $X$, representing the \textit{false} cut $0 \leq -1$ which cuts both $\assignment$ and all rows of $\btable$.
+Then, we will add the non-zero Boolean variables from one column partition (\ie one partition per integer variable) at a time, until no rows in $\btable$ are cut.
+Invariantly, the cut represented by $X$ will violate $\assignment$.
+In \linex{lst:generate:initialize}, $X$ and $\rhs$ are initialized accordingly.
+We use $R$ to keep track of violated rows, initially all, and
+ $V$ to track which partitions are already used, initially none.
+
+In the main loop of the algorithm in \lines{lst:generate:while:start}{lst:generate:while:end}, we relax the cut by expanding $X$ so that we can remove violated rows from $R$.
+While the cut still violates any row in the table, we choose a partition $l$ in \linex{lst:generate:choose} (\ie an integer variable).
+Adding $C(\assignment,l)$ to $X$ and incrementing $\rhs$ in \lines{lst:generate:updateX}{lst:generate:updateRhs} upholds the invariant (we defer the proof to \cref{thm:valid} for a more general version of this algorithm).
+The new cut is weaker and may allow more rows in $\btable$, so we remove those from the violated row set $R$ in \linex{lst:generate:updateR}, and repeat until $R$ is empty.
+
+\begin{algorithm}
+\caption{The \lazyGenerate algorithm for Boolean table constraints of $\rows$ rows and $\cols$ columns.}
+\label{lst:generate}
+\begin{algorithmic}[1]
+    \Require Counterexample $\assignment$ violating $\texttt{table}(\hat{b},\btable)$, with partitioning $p$. 
+    \codeBlockDelim
+    \Function{\lazyGenerate}{$\generateInitArgs$}
+        \State \Return \Call{generate}{$\generateInitArgs, \emptyset, -1, \interval{1}{m}, \emptyset$} \label{lst:generate:initialize}
+    \EndFunction
+    \codeBlockDelim
+    \Function{\lazyGenerate}{$\generateArgs$}
+        \While{$R \neq \emptyset$}\label{lst:generate:while:start}
+            \State choose $l \in \interval{1}{k} \setminus V$  \label{lst:generate:choose}
+            \Comment{Heuristically using \cref{eq:greedy}}
+            \State $V \gets V \cup \{l\}$
+            \label{lst:generate:updateV}
+            \State $X \gets X \cup C(\assignment, l)$
+            \label{lst:generate:updateX}
+            \State $\rhs \gets \rhs + 1$
+            \label{lst:generate:updateRhs}
+            \State $R \gets R \cap \bigcup_{\col \in C(\assignment, l)}{\btable_\col}$
+            \label{lst:generate:updateR}
+        \EndWhile\label{lst:generate:while:end}
+        \State \Return $\sum_{\col \in X} b_\col \leq \rhs$
+        \label{lst:generate:return}
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+\begin{example}
+\label{ex:frac}
+   Consider the (binary) table defined in \cref{ex:binary}.
+Suppose we wish to generate a cut to 
+remove the discrete 01 counterexample $\be{1}{2} = \be{2}{2} = \be{3}{2} = 1$ and all others $0$ (equivalently $\sequence{x_1,x_2,x_3} = \sequence{2,2,2}$).
+Initially $X = \emptyset, \rhs = -1, R = 1..5, V = \emptyset$.
+Suppose we choose $l = 1$, corresponding to $x_1$, and add it to $V$.
+Then $C(\assignment,l) = \set{2}$, corresponding to $\be{1}{2}$, which is added to $X$, and $\rhs$ becomes 0. 
+$R$ is reduced to $\set{1,5}$, the only two rows that contain value $1$ in $\be{1}{2}$'s column, while the three rows removed from $R$ would assign $\be{1}{2}$ to $0$ which satisfies the cut.
+Next suppose we choose $l = 2$ and add it to $V$.
+Then $C(\assignment,l) = \set{6}$ which is added to $X$, $\rhs$ becomes 1,
+$R$ is reduced to $\emptyset$ (intersected with 
+$\set{2,4}$).
+We return the valid cut
+$\be{1}{2} + \be{2}{2} \leq 1$.
+\end{example}
+
+To choose a partition in \linex{lst:generate:choose}, we find one which leaves the fewest rows in $R$ in \linex{lst:generate:updateR}:
+\begin{equation}
+\label{eq:greedy}
+\argmin_{l \in \interval{1}{k} \setminus V} H(l)
+\text{~where~}
+H(l) = |R \cap \bigcup_{\col \in C(\assignment, l)} \btable_\col|
+\end{equation}
+
+This heuristic will often yield a small cut, but not necessarily a \textit{minimal} one.
+To guarantee minimality, a \lazyShrink algorithm can be applied once we have obtained a valid cut in \linex{lst:generate:return}.
+One approach, in the style of a deletion-based \acrlong{mus} algorithm, removes the term $b_\col$ if the cut without $b_\col$ still satisfies $\btable$.
+Preliminary experiments found little benefit in doing so as few terms were removed at the cost of a relatively high overhead.
+
+\subsection{Fractional solutions}
+\label{sec:cuts:fractional}
+
+
+\cref{lst:generate} can be used generically for any solver producing discrete 01 solutions.
+However, when integrated as a callback procedure in an \milp solver, one can ask to be called also after the \relaxation is solved, resulting in a fractional solution.
+
+\begin{example}
+    Suppose the fractional solution is $\sequence{0,0.5,0.5,0,0,1,0,0,1,0}$ for variables $\sequence{\be{1}{1}, \ldots, \be{3}{3}}$.
+    Note how the sum of all variables belonging to the same \mbox{integer/partition} is still one due to \cref{eq:eo}.
+    By analysing the four non-zero columns in \cref{ex:binary}, we can derive that while $\be{1}{2}$ holds in table rows 1 and 5,
+    these rows do not satisfy the other non-zero columns, $\be{2}{2}$ and $\be{3}{2}$.
+    Consequently, $\assignment$ can be cut by $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$ without cutting rows.
+    Another fractional solution, $\sequence{0,1,0,0,1,0,0,0.5,0.5,0}$, lies in the convex hull of the table, meaning it is a weighted average of table rows; hence each fractional column is supported by a row, so no separating cut exists.
+\end{example}
+
+The key idea is to identify such a fractional, non-zero column in $\assignment$, for which we can derive a cut.
+The algorithm is shown in \cref{lst:frac}, which first collects all fractional column indices of $\assignment$ in $F$, and all indices of columns with value $1$ in $W$.
+\llinex{lst:frac:D} then collects $D$ as all \textit{feasible} rows of the fractional solution, \ie the rows in $\btable$ that involve a subset of the non-zero columns of $\assignment$.
+
+If there is now a fractional column that does not appear in any of the feasible rows, then we know that when selecting that column, there is no valid assignment to the non-zero columns of the other integer variables that would be supported in the table.
+In \linex{lst:frac:U}, we collect all such columns in $U$, by checking they don't appear in any row of $D$. 
+If however $U = \emptyset$, we will not create a cut as $\assignment$ \textit{may} appear in the convex hull of $\btable$.
+While $\assignment$ could be outside the convex hull (see \cref{lemma:hull}), this partial check is easier than a complete one. 
+From any column in $U$ we can generate a cut, and we use a heuristic similar to \cref{eq:greedy} to select one.
+Let $X' = \bigcup_{l \in \interval{1}{k}\setminus{\{p(j)\}}} C(\assignment, l)$ 
+be the set of all binary columns of the integer variables/partitions except the partition $p(j)$ with non-zero column $j$.
+We know $\sum_{t \in X'} b_t = k-1$ and that any extension of this involving $b_j$ is not supported in the table, so $\sum_{t \in X'} b_t + b_j \leq k-1$ does not eliminate a row from the table, but because $b_j$ is non-zero in $\assignment$ it does cut the counterexample and hence it is a valid cut.
+We go one step further in the algorithm: we might not need the columns of all of the partitions in the cut. Hence, we start by adding column $j$ to the cut, and call \cref{lst:generate} to expand it partition by partition until all rows are eliminated.
+
+
+\begin{algorithm}
+\caption{The \lazyFractional algorithm for Boolean table constraints}
+\label{lst:frac}
+\begin{algorithmic}[1]
+    \Require A (possibly fractional) counterexample $\assignment$, $\texttt{table}(\hat{b},\btable)$ with partitioning $p$
+    \Function{\lazyFractional}{\generateInitArgs}
+    \State $F \gets \setComp{\col}{\assignment_\col > 0 \wedge \assignment_\col < 1}$
+    \label{lst:frac:F}
+    \If{$F = \emptyset$}
+        \State \Return \Call{\lazyGenerate}{\generateInitArgs}
+        \Comment{Discrete 01 counterexample}
+    \EndIf
+    
+    \State $W \gets \setComp{\col}{\assignment_\col = 1}$
+    \State $D \gets \setComp{r}{\btableTransposed_r \subseteq W \cup F}$ 
+    \label{lst:frac:D}
+    \State $U = \setComp{\col}{\col \in F, \forall r \in D.\btable_{r\col} = 0}$
+    \label{lst:frac:U}
+    \If{$U = \emptyset$}
+        \State \Return $\true$
+    \EndIf
+    
+    \State $\col \gets \argmin_{\col \in U} |R \cap \btable_\col|$
+    \Comment{Choose $\col \in U$ heuristically similar to \cref{eq:greedy}}
+    \label{lst:frac:choose}
+    \State \Return \Call{\lazyGenerate}{$\generateInitArgs, \set{\col}, 0, \btable_\col, \set{p(\col)}$}
+    \Comment{Initializing $X$, $\rhs$, $R$, and $V$}
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+\begin{theorem}
+\label{thm:valid}
+   $\Call{\lazyFractional}{\generateInitArgs}$ generates a correct cut eliminating $\assignment$ and no row of $\btable$.
+\end{theorem}
+
+\begin{example}
+\label{ex:generate-frac}
+    Let us consider the fractional solution 
+    $\assignment = \sequence{0,0.5,0.5,0,0,1,0,0.5,0.5,0}$.
+    Then $F = \set{2,3,8,9}$, $W = \set{6}$. There is only one feasible row, 
+    $D = \set{2}$, and it does not involve the fractional columns $U = \set{2,8}$.
+    Suppose we choose $\col = 2$, then we 
+    construct $X = \set{2}, \rhs = 0, R = \set{1,5}$ and $V = \set{p(2)} = \set{1}$ and call \cref{lst:generate}. 
+    Suppose it chooses $l = 2$, then $X$ grows to $\set{2,6}$
+    and $R = \emptyset$.
+    The resulting cut is $\be{1}{2} + \be{2}{2} \leq 1$, the same as in \cref{ex:initial}, without the solver needing to find a discrete solution.
+\end{example}
+
+
+\subsection{Cut lifting}
+\label{sec:cuts:cutlift}
+A valid cut $\sum_{\col \in X} a_\col b_\col \leq \rhs$ can be made stronger by adding an unused $\colLift$ to $X$, or increasing the coefficient $a_{\colLift}$ of an existing term, without raising the right-hand side $\rhs$, called \textit{lifting in a variable}.
+Suppose a \textit{feasible} solution takes row $r$.
+Let $RS_r = \sum_{\col \in X}{a_{\col} \btable_{r\col}}$ be the value on the left-hand side of the cut.
+Since the original cut is valid, meaning it does not cut any row, we have $RS_r \leq \rhs$.
+Lifting $a_{\colLift} b_{\colLift}$ will still satisfy row $r$, as long as either $\btable_{r\colLift} = 0$, or if $a_{\colLift} < \rhs - RS_r$.
+Since the lifted cut is at least as strong as the original, $\assignment$ remains cut.
+
+\cref{lst:cutlift} efficiently finds candidate variables to lift.
+In \linex{lst:cutlift:RS}, we first calculate $RS$ for all rows.
+In \linex{lst:cutlift:tight}, we collect \textit{tight} rows $\Rtight$ for which the LHS sums to exactly $\rhs$.
+In \linex{lst:cutlift:X}, we find columns $\Xtight$ we cannot lift as they would increase $RS_r$ for a tight row.
+In the main loop, we first choose a column $\colLift$ we can lift.
+In \linex{lst:cutlift:a}, we find a safe coefficient $a_{\colLift}$ such that no $RS_r > \rhs$ after lifting.
+In \linex{lst:cutlift:RSj}, we increment $RS$ by $a_{\colLift}$ along the column $\colLift$, avoiding recomputing $RS$ by using a vector addition.
+In \lines{lst:cutlift:update:start}{lst:cutlift:update:end}, we find the newly tightened rows $\Ntight$, and update $\Rtight$ and $\Xtight$ accordingly.
+We prove cut lifting is correct if the original cut is valid, which is to say, the cut is a consequence (written $\models$) of the table because it does not eliminate any of its solutions/rows.
+
+\begin{theorem}
+\cutliftThm
+\end{theorem}
+
+\begin{algorithm}
+\caption{The \lazyCutlift algorithm}
+\label{lst:cutlift}
+\begin{algorithmic}[1]
+    \Require First argument is a valid cut for $\btable$ with rows $\interval{1}{\rows}$
+    \codeBlockDelim
+    \Function{\lazyCutlift}{$\sum_{\col \in X} a_\col b_\col \leq \rhs,\tableCon$}
+        \State $R \gets \interval{1}{\rows}$
+        \State $RS_r \gets \sequenceComp{\sum_{\col \in X} a_\col \btable_{r\col}}{r \in R}$ 
+        \label{lst:cutlift:RS}
+        \State $\Rtight \gets \setComp{r}{r \in R, RS_r = \rhs}$
+        \label{lst:cutlift:tight}
+        \State $\Xtight \gets \bigcup_{r \in \Rtight} \btableTransposed_r$
+        \label{lst:cutlift:X}
+        \While{$\Cols \setminus \Xtight \neq \emptyset$ }
+            \State choose $\colLift \in \Cols \setminus \Xtight$
+            \Comment{Heuristically using \cref{eq:com}}
+            \State $X \gets X \cup \set{\colLift}$
+            \State $a_{\colLift} \gets \min \setComp{\rhs - RS_r}{r \in R \setminus \Rtight, \btable_{r\colLift} = 1}$
+            \label{lst:cutlift:a}
+            \State $RS \gets \sequenceComp{RS_r + a_{\colLift}}{r \in R, \btable_{r\colLift}=1}$
+            \label{lst:cutlift:RSj}
+            \State $\Ntight \gets \setComp{r}{r \in R \setminus \Rtight, RS_r = \rhs}$
+            \label{lst:cutlift:update:start}
+            \State $\Rtight \gets \Rtight \cup \Ntight$
+            \State $\Xtight \gets \Xtight \cup \bigcup_{r \in \Ntight} \btableTransposed_r$
+            \label{lst:cutlift:update:end}
+        \EndWhile
+        \State \Return $\sum_{\col \in X} a_\col b_\col \leq \rhs$
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+\begin{example}
+    Consider the use of \lazyCutlift on 
+    initial cut $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$.
+    The $RS = \sequence{1,2,0,1,2}$ so $\Rtight = \set{2,5}$, so $\Xtight = 
+    \set{2, 3, 5, 6, 9}
+    $.
+    Selecting $\colLift = 4$ we find $a_4 = 2$
+    and lift to get $\be{1}{2} + 2\be{1}{4} + \be{2}{2} + \be{3}{2} \leq 2$, then $RS = \sequence{1,2,2,1,2}$ and 
+    $\Rtight = \set{2,3,5}$, so $\Xtight$ is extended by $\set{4,7,10}$.
+    Repeating this twice with $\colLift = 8, a_{8} = 1, N_{tight} = \{1\}$, then $\colLift = 1, a_{1} = 1, N_{tight} = \{4\}$, terminates \lazyCutlift with $\Xtight = \Cols$ and the stronger cut $\be{1}{1} + \be{1}{2} + 2\be{1}{4} + \be{2}{2} + \be{3}{1} + \be{3}{2} \leq 2$.
+\end{example}
+
+To choose a column to lift, we base a heuristic on the \textit{centre of mass} $\hat{c}$ of $\btable$, the vector defined by each column's average value.
+The difference $\hat{c} - \assignment$ is the direction from $\assignment$ towards the centre.
+We lift the variable $b_{\colLift}$ which moves the cut most into this direction:
+
+\begin{equation}
+\label{eq:com}
+\argmax_{\colLift \in \Cols \setminus \Xtight}{\frac{\sum_{r \in R} \hat{T}_{r\colLift}}{m} - \assignment_{\colLift}}
+\end{equation}
+
+\subsection{A hybrid eager-lazy approach}
+\label{sec:cuts:cutoff}
+Given a constraint specification, for each table constraint we can choose whether it should be eagerly encoded, or handled lazily with cut generation.
+Since lazy constraints are commonly used when the encoding is large, a sensible threshold is based on the number of rows.
+Secondly, if there are many rows, it is less likely that all rows are as relevant, \eg many rows may not be feasible due to other constraints.
+
+\section{Experimental evaluation}
+\label{sec:exps}
+
+
+We evaluate on a set of benchmarks with a wide variety of tables.
+We run each encoding described in \cref{sec:encoding}, and perform a comparative study on the cut generation extensions described in \cref{sec:cuts}.
+
+\begin{description}
+    \item[Benchmarks] We collect all instances from the \gls{csp} and \acrshort{cop} tracks of \XCSPYears competition~\cite{audemard2025proceedings2025xcsp3competition}.
+    We omit all instances which have no top-level table constraints, which leaves 180 \gls{csp} and 247 \gls{cop} instances. This accounts for roughly 25\% of all available CSP3 instances, showing the prevalence of this constraint in the competition. We check assignments of feasible results using the XCSP3 checker\footnote{\url{https://xcsp.org/tools/}}, and we check that there are no contradictions between solvers on feasibility results or on optimal objective values.
+    \item[Solvers] We use Gurobi v.~13.0.1~\cite{gurobi} as \milp solver, and CPMpy v0.10.0~\cite{guns2019increasing} to load and linearize the XCSP3 instances, and to implement the novel encodings and cut generator. Gurobi is run with default parameters, with two exceptions. First, the \texttt{MipGap} and \texttt{MipGapAbs} parameters are tweaked for all approaches to prevent sub-optimal solutions from being reported as optimal. Secondly, whenever cut generation is used, the \texttt{LazyConstraints} flag is enabled. This disables certain Gurobi features incompatible with lazy constraints, which does give the eager approach a noticable advantage. The implementation is freely available.\footnote{\url{https://github.com/ML-KULeuven/table-constraints-for-integer-programming}}
+    \item[Resources] We run each instance on a single core of an Intel(R) Xeon(R) CPU E5-2640 v3 @ 2.60GHz, and impose a \timeout~second time limit, and an \memout~GB memory limit.
+\end{description}
+
+\noindent We aim to answer the following experimental questions:
+
+\begin{description}
+    \item[Q1.] What is the impact of each encoding described in \cref{sec:encoding}?
+    \item[Q2.] What is the impact of each cut generation feature described in \cref{sec:cuts}?
+    \item[Q3.] When does lazy cut generation become beneficial compared to using an eager encoding?
+\end{description}
+
+A full overview of the results is shown in~\cref{tbl:res}.
+Supplemental performance profiles for a few selected approaches are provided in~\cref{appendix:cactus}.
+On these XCSP3 instances, CP-SAT/OR-Tools~(v.~9.15.6755)~\cite{cpsatlp}, which won 1st place in the 2025 \gls{cop} track and 2nd place in the 2025 \gls{csp} track, can solve 115 \gls{csp} instances and 98 \gls{cop} instances.
+This is considerably more than the \milp approaches in this paper, and we do not believe that improving the encoding of one global constraint would suddenly lead to \milp solvers outperforming native CP solvers on this benchmark.
+However, the XCSP3 instances form an appropriate dataset to investigate how improvements in encodings lead to improvements in \milp solver performance.
+
+\newcommand{\tableCaption}{
+Overview of results.
+The reported statuses are \pst for linearizing and posting the model, \sat for finding a feasible solution, or \sol for solved (\ie reported unsatisfiable, or \sat for \glspl{csp}, or optimal for \glspl{cop}), within the time- and memory limit.
+We report the average solve time (including encode/post time) over all instances, with a PAR2 penalty for unsolved instances.
+We also show the average number of constraints required to encode the instances which were successfully posted by all approaches, and the average number of cuts to solve instances which were solved by all lazy approaches.
+The best result for the various columns is shown in \textbf{bold}.
+}
+\input{analysis/tables.tex}
+
+\subsection{Impact of encodings (Q1)}
+
+To answer \textbf{Q1.}, we compare all table encodings described in~\cref{sec:encoding}.
+
+For the \gls{csp} instances in~\cref{tbl:res:csp}, we observe that \baseBool shows better performance than \baseGleb.
+This supports the idea that the table variables are \textit{nominal} in nature, and benefit from a direct encoding that can be re-used throughout the model in the other constraints, as discussed in~\cref{sec:encoding:bool}.
+As expected, \baseBool has more constraints than \baseGleb due to the larger number of columns in the Boolean table $\btable$ compared to the integer table $T$.
+We observe that \baseMddInput outperforms \baseGleb by 12 instances.
+\baseMddInput does not outperform \baseBool.
+However, \baseMddDomIncr does outperform \baseBool by 7 instances, illustrating the benefit of this column ordering heuristic.
+\baseMddInput has even more constraints than \baseGleb and \baseBool, but usually with fewer terms (see~\cref{sec:encoding:mdd}), thereby still leading to a strong solving performance.
+The same goes for \baseMddDomIncr, although we also observe that the number of constraints decreases compared to \baseMddInput since more nodes in the \gls{mdd} are merged.
+
+For the \gls{cop} instances shown in \cref{tbl:res:cop}, \baseGleb is somewhat better than \baseBool, with the \baseMddInput approach outperforming both in the number of instances proven optimal.
+While \baseMddDomIncr does not improve this result further, it does obtain 4 additional feasible results.
+\baseGleb obtains even more feasible results.
+In general, the difference in performance is smaller compared to the \gls{csp} instances.
+For instance, consider that if an integer variable occurs both in the objective and in a table, having to link direct encoding variables to this integer variable with a channelling constraint could be less ideal compared to using \baseGleb.
+
+\subsection{Impact of cut generation (Q2)}
+To answer \textbf{Q2.}, we perform a comparative study on the cut generation algorithm \lazyGenerate (\cref{sec:cuts:initial}), and the impact of adding the extensions \lazyFractional (see \cref{sec:cuts:fractional}) and \lazyCutlift (see \cref{sec:cuts:cutlift}), individually, and altogether in \lazyAll.
+
+For the \gls{csp} instances shown in~\cref{tbl:res:csp}, we can see that \lazyFractional only slightly improves on \lazyGenerate in time.
+Due to the fractional solutions, more cuts are required to solve instances.
+On the other hand, \lazyCutlift improves on \lazyGenerate with 9 additional feasible instances.
+We see this reflected in fewer cuts, indicating stronger ones were generated.
+When both extensions are combined in \lazyAll, this outperforms \lazyCutlift by 10 instances.
+For \gls{cop} shown in~\cref{tbl:res:cop}, again \lazyFractional leads to a small and \lazyCutlift to a larger improvement.
+Unlike for \gls{csp}, \lazyCutlift outperforms \lazyAll by proving optimality for 5 additional instances, however, \lazyAll does find significantly more feasible solutions.
+
+
+\subsection{Comparison between encoding and cut generation (Q3)}
+
+To answer \textbf{Q3.}, we compare the eager and lazy approaches globally.
+Then, we analyse which instances benefit more from cut generation than from the eager encoding and v.v., and when hybridizing the approaches as discussed in \cref{sec:cuts:cutoff} becomes worthwhile.
+
+The results in \cref{tbl:res} show that globally, the eager encodings outperform the lazy approach, especially for proving optimality.
+The lazy approach is able to post more instances in total.
+The number of constraints is low for lazy, yet the direct encoding of the integers and binary tables (see \cref{sec:background:tables}) still yields more constraints on average than \baseGleb.
+
+In \cref{fig:scatter}, we compare the two best performing configurations of each approach for \gls{csp}, namely \baseMddDomIncr and \lazyAll.
+We show the median number of rows for each instance.
+For \gls{csp} instances in~\cref{fig:scatter:csp}, we observe that \baseMddDomIncr tends to perform better on smaller tables (with fewer rows), whereas \lazyAll becomes advantageous for larger tables.
+For \gls{cop} instances in~\cref{fig:scatter:cop}, no correlation can be observed between table size and performance for the two paradigms.
+Nevertheless, some instances benefit more from eager encodings, while others benefit more from cut generation.
+
+\cref{fig:scatter} motivates the development of the \lazyCutoff approach (see~\cref{sec:cuts:cutoff}).
+We show results for three different table size thresholds: at least 1000, 2000, or 3000 rows for lazy.
+Back in \cref{tbl:res}, we can see the average number of constraints increasing again with the threshold, whereas the number of required cuts has been drastically reduced.
+In both tracks, \lazyCutoffT{2000} strikes the best balance, as we see diminishing results from 1000 and 3000.
+A large improvement is made by \lazyCutoffT{2000} compared to \lazyAll in solving \glspl{csp}, and to a lesser extent also for \glspl{cop}.
+This is unsurprising given the strength of the \gls{mdd}-based encoding.
+For \glspl{csp}, all \lazyCutoff approaches outperform \baseMddDomIncr.
+For \glspl{cop}, \lazyCutoffT{2000} loses one solved instance from \baseMddDomIncr, but finds the most feasible results of all approaches, outperforming \baseGleb by 6 additional feasible instances.
+
+
+\newcommand{\scatterCaption}{
+Scatter plots of solve time in seconds for all instances of the \XCSPYears \gls{csp} and \gls{cop} tracks.
+Compares \lazyAll (x-axis) against \baseMddDomIncr (y-axis), meaning bottom/right solves faster for \lazyAll and top/left solves faster for \baseMddDomIncr.
+Instances in the top/right grey area have reached timeout, and instances which timeout for both approaches are omitted.
+The colour of an instance indicates the median number of rows in its tables, and its shape indicates its problem class.
+}
+
+\newcommand{\compare}{base_gurobi-mdd-reduce-dom-incr-nocombined--lazy_gurobi-hybrid_0}
+
+\newcommand{\subfigureWidth}{0.49\linewidth}
+\newcommand{\svgWidth}{1.0\linewidth}
+\begin{figure}[t]
+    \begin{subfigure}{\subfigureWidth}
+        \centering
+        \includesvg[width=\svgWidth]{analysis/scatter-CSP-\compare.svg}
+        \caption{\XCSPYears (\gls{csp})}
+        \label{fig:scatter:csp}
+    \end{subfigure}
+    \begin{subfigure}{\subfigureWidth}
+        \centering
+        \includesvg[width=\svgWidth]{analysis/scatter-COP-\compare.svg}
+        \caption{\XCSPYears (COP)}
+        \label{fig:scatter:cop}
+    \end{subfigure}
+    \caption{\scatterCaption}
+    \label{fig:scatter}
+\end{figure}
+
+\section{Conclusion and future work}
+
+We have studied how to tackle table constraints when using \gls{ilp} solvers.
+Two paradigms were explored in detail: eager encodings into linear constraints, and a lazy cut generation approach.
+We experimented with different encodings and different extensions to the cut generation algorithm.
+The results show that the novel encodings convincingly outperform existing methods.
+The lazy approach is improved when both its extensions are enabled, and we find it better suited at finding feasible solutions rather than proving optimality.
+A more careful examination reveals the paradigms to be complementary, leading to a hybridization which improves the state-of-the-art for \gls{ilp} solvers on this important constraint.
+
+In future work, we hope to expand our understanding of when a table is suitable for which approach.
+For instance, a correlation may exist between the sparsity of a table and the performance of a method.
+Moreover, variations of the table constraint, such as \textit{negative tables}, \textit{smart tables}~\cite{DBLP:conf/cpaior/MairyDL15}, and half- or fully reified tables, could benefit from a similar approach.
+For the \gls{mdd}-based encoding, an algorithm for converting negative tables to \glspl{mdd} already exists \cite{DBLP:journals/constraints/ChengY10}, analogous to the algorithm for positive tables, whereas it is an open question how to convert smart tables to \glspl{mdd} so that their sizes scale proportionally.
+Our methods should easily extend to half-reification, but full reification will require additional work. 
+
+
+\hb{CHECK: page limit = 15 (excluding appendix/refs}
+
+\hb{
+15 pages
+\begin{enumerate}
+    \item sec 1 abstract + intro = 1.5
+    \item sec 2 about 2 pages
+    \item sec 3 (encoding) currently uses 5 page ; f
+    \item sec 4 (lazy) get to 4 pages ; maybe move proofs to appendix (probably not) ; maybe reduce shrink to a line in the exp. evaluation / initial cut gen.
+    \item exp+conc = 3 pages
+    \item  exp setup .5 page
+    \item  exp discussion 1 page
+    \item tables + figures 1 page (smaller font?)
+    \item conclusion .5 page
+\end{enumerate}
+}
+
+\bibliography{references}
+
+\appendix
+\newpage
+
+\section{Proofs}
+\label{appendix:proofs}
+
+\setcounter{theorem}{3}
+\begin{theorem}
+    Given a table constraint $\texttt{table}(\hat{x},T)$.
+    Let $ES$ be the encoding using \cref{simp:enc:1,simp:enc:2}.
+    Let $BV$ be the binary encoding of the integer variables $\hat{x}$ according to \cref{eq:eo,eq:channel}.
+    Let $BS$ be the encoding of the binarised version of table constraint $\texttt{table}(\hat{x},T)$  defined
+    by \cref{eq:bin:1,eq:bin:2}.
+    Any solution of $ES$ is extendible to a solution of $BS \cup BV$ and any solution of $BS \cup BV$ projected onto $\hat{x}$ and $\hat{r}$ is a solution of $ES$.
+\begin{proof}
+    Each equation of the form \cref{simp:enc:1}
+    also appears in $BS$.
+    We show that any equation $\sum_{l \in 1..m} T_{li}r_l = x_i \in ES$ of the form 
+    \cref{simp:enc:2} is a linear integer consequence of equations in $BV \cup BS$. 
+    Now $x_i = \sum_{j \in D(x_i)} j \beq{x}{j} \in BV$.
+    For each value $j \in D(x_i)$ we have a row
+    $\sum_{l \in 1..m, T_{li} = j} r_l = \beq{x_i}{j} \in BS$. 
+    Since each column $r_l$ appears in at most one of these 
+    row constraints, if we replace $\beq{x_i}{j}$ in $\sum_{j \in D(x)} j \beq{x_i}{j}$ by the left hand side
+    we exactly obtain $\sum_{l \in 1..m} T_{li}r_l$.
+    As a consequence, we can always extend a solution of $ES$ to a solution of
+    $BS \cup BV$ by assigning $\beq{x_i}{j}$ variables using the equations in $BS$.
+    Similarly any solution of $BS \cup BV$ is a solution of $ES$.
+\end{proof}    
+\end{theorem}
+
+\setcounter{theorem}{6}
+\begin{theorem}
+   Given a table constraint $\texttt{table}(\hat{x},T)$.
+    Let $BS$ be the encoding of the binarised version of  table constraint $\texttt{table}(\hat{x},\btable)$  defined
+    by \cref{eq:bin:1,eq:bin:2}.
+    Let $MS$ be the encoding of the MDD of  table constraint $\texttt{table}(\hat{x},\btable)$  defined
+    by \cref{eq:flowbalance,eq:bool}.
+    Then the real solutions of $BS$ and $ES$ on the variables 
+    $\be{i}{j}, i \in 1..k, j \in D(x_i)$ are equivalent.
+\begin{proof}
+   (Sketch) Consider a solution of the binarised encoding $BS$, gives a value for each $r$ variable.  We can set 
+   $e_{(s,j)}$ to equal to the sum of the row variables for rows which include the prefix $s' \pp [j]$, $s' \in E(s)$.  This leads to the same solution on the $\be{i}{j}$ variables. 
+    Consider a flow solution $\theta$ on the variables $e_{(s,j)}$. This defines a solution on the Boolean encoding variables $\beq{x_i}{j}$. 
+    We construct a solution for the row variables $\hat{r}$ that gives the same solution on $\beq{x_i}{j}$
+    since flow variables $e_{(s,j)}$ that correspond to different rows with identical prefixes and identical sets of suffixes can always be broken into a sum of flows through the individual rows by the conservation of flow.
+\end{proof}
+\end{theorem}
+
+\setcounter{theorem}{10}
+
+\begin{theorem}
+    $\lazyFractional(\assignment, \btable)$ generates a correct cut eliminating $\assignment$ and no row of $\btable$.
+    \begin{proof}
+     First note that the cut always cuts off $\assignment$ since at all stages 
+     $\sum_{\col \in X} \assignment_\col > \rhs$.
+     Initially this is true since either
+     $X = \emptyset$ and $s = -1$ (if $F = \emptyset$) or
+     $\assignment_\col > 0, \rhs = 0$, and in each iteration of the loop
+     we add to $X$ all columns for variable $l$, hence adding 1 to the sum, and we also add 1 to $\rhs$. 
+
+     We now show by induction that each row in $R$ satisfies $\sum_{\col \in X} b_\col  = \rhs+1$, and each row not in $R$ satisfies $\sum_{\col \in X} b_\col \leq \rhs$. 
+     Initially either $X = \emptyset$ and $s = -1$ and this holds trivially, or     
+     $X = \{\col\}$ and each row $r \in R $ has $\btable_{r\col} = 1$ satisfying the equality condition.
+     Each row $r' \not \in R$ has $\btable_{r'\col} = 0$ thus satisfying the inequality condition. 
+
+     In the loop iteration, we choose an unselected variable $l$ and add $C(\assignment,l)$ to $X$ and 1 to $\rhs$. 
+     For rows $r$ remaining in $R$ we have that $\btable_{r\col} = 1$ for some $\col \in C(\assignment,l)$ hence they continue to satisfy the equality condition.
+     For rows $r$ leaving $R$ we have that $\btable_{r\col} = 0, \forall \col \in C(\assignment,l)$ and hence they now satisfy the inequality condition. 
+     For rows $r$ already not in $R$, we add at most one to the sum in the inequality condition (since all new variables added to $X$ are from a single integer), and we add one to the right hand side, thus they continue to satisfy the inequality condition.
+
+     Finally, we show that the loop terminates, since we can always choose $X = \set{\col} \cup \bigcup_{l \in 1..k \setminus \{p(\col)\}} C(\assignment,l)$ to eliminate all rows $R$, because no rows in $D$ include column $\col$, and all other rows include a coefficient not in $X \subset W \cup F$. 
+    \end{proof}
+\end{theorem}
+
+\setcounter{theorem}{12}
+\begin{theorem}
+\cutliftThm
+\begin{proof}
+Suppose to the contrary the lifted cut $\sum_{\col \in X \cup \set{\colLift}} a_\col b_\col \leq \rhs$ 
+is not a consequence of the table $\btable$.
+Then there is a row that violates the constraint, say $r$.  
+So $\sum_{\col \in X \cup \set{\colLift}} a_\col \btable_{r\col} > \rhs$.
+Now in row $r$ if $\btable_{r\colLift}$ is true then by the implication
+$\sum_{\col \in X} a_\col \btable_{r\col} \leq \rhs - a_{\colLift}$ and 
+clearly the constraint cannot be violated.
+Otherwise if $\btable_{r\colLift} = 0$ then since $\sum_{\col \in X} a_{\col} \btable_{r\col} \leq \rhs$, by correctness of the original cut, we have a contradiction.
+\end{proof}
+\end{theorem}
+
+
+
+\setcounter{lemma}{15}
+\begin{lemma}\label{lemma:hull}
+    If $\assignment$ is in the convex hull of $\btable$ then $U = \emptyset$.
+    \begin{proof}
+        Suppose $\assignment = \bar{\lambda} \btable$ 
+        then clearly $\lambda_r = 0$ for $r \not\in D$ since otherwise we get a non-zero value in a column not in $\assignment$. 
+        Suppose to the contrary $\exists \col \in U$ then $\btable_{r\col} = 0, \forall r \in D$, but $\assignment_\col > 0$. Contradiction since $\lambda_r = 0$ for all rows where $\btable_{r\col} > 0$.
+    \end{proof}
+\end{lemma}
+
+\section{Performance profiles}
+\label{appendix:cactus}
+
+\begin{figure}[h]
+    \begin{subfigure}{\subfigureWidth}
+        \centering
+        \includesvg[width=\svgWidth]{analysis/cactus-CSP.svg}
+        \caption{\XCSPYears (\gls{csp})}
+        \label{fig:cactus:csp}
+    \end{subfigure}
+    \begin{subfigure}{\subfigureWidth}
+        \centering
+        \includesvg[width=\svgWidth]{analysis/cactus-COP.svg}
+        \caption{\XCSPYears (\gls{cop})}
+        \label{fig:cactus:cop}
+    \end{subfigure}
+    \caption{Cactus plots for a few selected approaches, showing the number of instances solved on the y-axis by the solve time in seconds on the x-axis. Higher is better.}
+    \label{fig:cactus}
+\end{figure}
+
+\end{document}
+
+
+
+
