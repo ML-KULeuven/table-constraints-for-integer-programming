@@ -236,24 +236,27 @@ def xcsp3_plot(df, time_limit=None, metric="time_solve", filter_by="solved", sol
     # Create figure
     fig = plt.figure(figsize=(10, 6))
 
-    for solver in solvers_sorted:
+    linestyles = ['-', '--', '-.', ':', (0, (3, 1, 1, 1, 1, 1))]
+
+    for i, solver in enumerate(solvers_sorted):
         # Get data for this solver
         solver_data = df[df['alias'] == solver]
-        
+
         # Sort by time_total
         solver_data = solver_data.sort_values(metric)
-        
+
         # If time_limit is set, truncate data
         if time_limit is not None:
             solver_data = solver_data[solver_data[metric] <= time_limit]
-        
+
         # Build x and y values
         x = [0.0] + solver_data[metric].tolist()
         y = [0] + list(range(1, len(solver_data) + 1))
-        
+
         # Plot the performance curve
         label = alias_to_label(solver)
-        plt.plot(x, y, label=f"{label} ({len(solver_data)})", linewidth=2.5)
+        plt.plot(x, y, label=f"{label} ({len(solver_data)})", linewidth=4,
+                 linestyle=linestyles[i % len(linestyles)])
     
     # Set plot properties
     plt.xlabel('Time [seconds]')
@@ -1436,9 +1439,9 @@ def analyze(files=[], time_limit=None, plot=None, show_cactus=None, sync=None, n
 
                                         plt.tight_layout()
 
-                                        # Save plot
-                                        if plot:
-                                            correlation_plot = f"correlation-{track}-{baseline}--{solver}" if paper else f"correlation-{track}-{baseline}-{solver}-{metadata_col}-{time_col}"
+                                        # Save plot (skip for paper mode)
+                                        if plot and not paper:
+                                            correlation_plot = f"correlation-{track}-{baseline}-{solver}-{metadata_col}-{time_col}"
                                             save_plot(fig, plot, correlation_plot)
 
                                         plt.close(fig)
