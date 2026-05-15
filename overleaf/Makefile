@@ -3,7 +3,7 @@ TEX = pdflatex -interaction=nonstopmode --shell-escape
 SVGS := $(wildcard analysis/*.svg)
 SVG_PDFS := $(patsubst analysis/%.svg,svg-inkscape/%_svg-tex.pdf,$(SVGS))
 
-all: main.pdf
+all: main.pdf presentation.pdf
 
 svg-inkscape/%_svg-tex.pdf: analysis/%.svg
 	mkdir -p svg-inkscape
@@ -15,8 +15,14 @@ main.pdf: main.tex prelude.tex references.bib $(SVG_PDFS)
 	$(TEX) main.tex
 	$(TEX) main.tex
 
+presentation.pdf: presentation.tex references.bib
+	$(TEX) presentation.tex
+	bibtex presentation
+	$(TEX) presentation.tex
+	$(TEX) presentation.tex
+
 clean:
-	rm -rf main.aux main.log main.out main.pdf main.bbl main.blg main.vtc main.zip svg-inkscape
+	rm -rf main.aux main.log main.out main.pdf main.bbl main.blg main.vtc main.zip svg-inkscape presentation.aux presentation.log presentation.out presentation.pdf presentation.bbl presentation.blg presentation.nav presentation.snm presentation.toc presentation.synctex.gz
 
 zip: main.zip
 
@@ -26,4 +32,6 @@ main.zip: main.tex prelude.tex references.bib lipics-v2021.cls main.pdf
 greyscale: main.pdf
 	gs -sDEVICE=pdfwrite -dProcessColorModel=/DeviceGray -dColorConversionStrategy=/Gray -dNOPAUSE -dBATCH -sOutputFile=main-greyscale.pdf main.pdf
 
-.PHONY: all clean zip greyscale
+presentation: presentation.pdf
+
+.PHONY: all clean zip greyscale presentation

@@ -2,6 +2,7 @@
 
 \usetheme{Madrid}
 \usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
 
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -18,6 +19,7 @@
 \sisetup{detect-weight=true,group-four-digits=true}
 \usepackage{subcaption}
 \usepackage{colortbl}
+\usepackage[nopostdot,nogroupskip,nonumberlist]{glossaries}
 
 \input{prelude}
 
@@ -25,35 +27,51 @@
 
 
 \title{Table Constraints for Integer Programming}
-\author{Hendrik Bierlee}
-\institute{KU Leuven}
+\subtitle{JFPC'26 -- Accepted at CP'26}
+\author{Hendrik Bierlee\inst{1} \and Wout Piessens\inst{1} \and Tias Guns\inst{1} \and Peter J. Stuckey\inst{2,3}}
+\institute{\inst{1} KU Leuven, Belgium \and \inst{2} Monash University, Melbourne, Australia \and \inst{3} OPTIMA ITTC, Melbourne, Australia}
 \date{}
+
+\titlegraphic{
+\includegraphics[height=1.2cm]{erc-logo.pdf}
+% TODO remaining logos
+}
 
 \begin{document}
 
 \begin{frame}
 \titlepage
+\vfill
+{\footnotesize Funded by ERC (Grant No.\ 101002802, CHAT-Opt), FWO-Vlaanderen (G020525N), and the Australian Government through OPTIMA.}
 \end{frame}
 
-\begin{frame}{Outline}
-\tableofcontents
-\end{frame}
+% \begin{frame}{Outline}
+% \tableofcontents
+% \end{frame}
 
 %===============================================================================
 \section{Introduction}
 %===============================================================================
 
-\begin{frame}{Table Constraints in CP}
-\begin{itemize}
-    \item Table constraints \texttt{table}($\hat{x}, T$): enforce that variables $\hat{x}$ take values from one of the rows in $T$
-    \item One of the most well-studied global constraints in CP~\cite{GAC,STR2}
-	    % TODO appear s in 25 perceNt
+\begin{frame}{Table Constraints in \gls{cp}}
 
-    \item Arise naturally in configuration, scheduling, XCSP3 competitions~\cite{audemard2025proceedings2025xcsp3competition}
+\begin{itemize}
+	\item Solver-independent modelling languages (\eg MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) solve \gls{cp} models using \gls{ilp} solvers
+    \item But there is a large perfomance gap between \gls{ilp} and \eg CP-SAT
+    \begin{itemize}
+	    \item Because tables (and other globals) are not encoded well for \gls{ilp}
+	    \item Because we do not use the full \gls{ilp} toolset (\eg lazy row generation)
+    \end{itemize}
 \end{itemize}
 
+% \begin{itemize}
+%     \item Table constraints \texttt{table}($\hat{x}, T$) enforces that variables $\hat{x}$ take values from a row in $T$
+%     \item One of the most well-studied global constraints in \gls{cp}~\cite{GAC,STR2}
+%     \item Prevalent in configuration, scheduling, in $\approx 25\%$ of all XCSP3 competition instances~\cite{audemard2025proceedings2025xcsp3competition}
+% \end{itemize}
+
 \medskip
-\textbf{Running example:} \texttt{table}($[x_1, x_2, x_3], T$) with:
+	\textbf{Running example:} \texttt{table}($[x_1, x_2, x_3], T$) with enforces $\hat{x}$ to take one row of $T$:
 \[
 \begin{array}{rrr}
 x_1 & x_2 & x_3 \\ \hline
@@ -66,32 +84,15 @@ x_1 & x_2 & x_3 \\ \hline
 \]
 \end{frame}
 
-\begin{frame}{Motivation \& Contributions}
-\begin{itemize}
-    \item Solver-independent modelling (MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) $\Rightarrow$ CP models solved by ILP solvers
-    \item Little attention to how to best encode tables for ILP
-\end{itemize}
-
-\bigskip
-\textbf{Contributions:}
-\begin{enumerate}
-    \item First experimental comparison of different table encodings to ILP
-    \item A novel \textbf{Booleanized encoding} and an \textbf{MDD-based flow encoding}
-    \item A novel \textbf{lazy cut generation} approach for tables
-    \item Investigation of \textbf{fractional cuts} and \textbf{cut lifting}
-    \item A \textbf{hybrid} eager-lazy approach combining the best of both
-\end{enumerate}
-\end{frame}
-
 %===============================================================================
 \section{Eager Encodings}
 %===============================================================================
 
 \begin{frame}{Simple Integer Encoding (\baseGleb)}
 \begin{itemize}
-    \item Standard encoding by Belov et al.~\cite{belov_improved_2016} (default in MiniZinc)
+    \item Standard encoding by \citeNoun{Belov}{belov_improved_2016} (default in MiniZinc)
     \item Row variables $r_i$ ($r_i = 1$ iff row $i$ chosen)
-    \item Compact: $m$ new variables, $k{+}1$ constraints (with $m$ number of rows, $k$ number of columns)
+    % \item Compact: $m$ new variables, $k{+}1$ constraints (with $m$ number of rows, $k$ number of columns)
 \end{itemize}
 
 \begin{columns}[T]
@@ -127,9 +128,10 @@ r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& x_3
 \end{columns}
 \end{frame}
 
-\begin{frame}{Booleanized Encoding (\baseBool)}
+\begin{frame}{Booleanized Encoding (\baseBool)~\cite{petit}}
 \begin{itemize}
-    \item Key insight: table variables are often \emph{nominal} -- other constraints reason about $x_i = v$
+	\item The row index variable is \textit{nominal}, and so are the column variables $x_i$
+    % \item Key insight: table variables are often \emph{nominal} -- other constraints reason about $x_i = v$
     \item Direct (unary) encoding: binary variable $\be{i}{j}$ for each value $j \in \dom{x_i}$
     \item Rewrite integer table into Boolean 01 table $\btable$
 \end{itemize}
@@ -145,18 +147,16 @@ r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& x_3
 \end{array}
 \]
 
-\smallskip
-Equivalent LP relaxation to \baseGleb, but \textbf{stronger model} when binary variables used elsewhere.
+% \smallskip
+% Equivalent \gls{lp} relaxation to \baseGleb, but \textbf{stronger model} when binary variables used elsewhere.
 \end{frame}
 
-\begin{frame}{MDD-based Flow Encoding (\baseMdd)}
+\begin{frame}{\gls{mdd}-based Flow Encoding (\baseMdd)}
 \begin{columns}[T]
 \begin{column}{0.45\textwidth}
 \begin{itemize}
-    \item Encode table as a \textbf{reduced MDD}~\cite{DBLP:journals/constraints/ChengY10}
-    \item Shared prefixes/suffixes $\Rightarrow$ exponentially smaller
-    \item Encode MDD as \textbf{flow network} (totally unimodular~\cite{ahuja1993network})
-    \item Flow balance at each node, total flow = 1
+    \item Encode table as a \textbf{reduced \gls{mdd}}~\cite{DBLP:journals/constraints/ChengY10} with nodes sharing prefixes
+    \item Encode (possibly exponentially smaller) \gls{mdd} as a (totally unimodular~\cite{ahuja1993network}) \textbf{flow network} (totally unimodular)
 \end{itemize}
 
 \medskip
@@ -176,7 +176,9 @@ Column ordering of the table matters:
 \end{columns}
 \end{frame}
 
-\begin{frame}{MDD Flow Encoding -- Example}
+\ignore{
+
+\begin{frame}{\gls{mdd} Flow Encoding -- Example}
 \begin{columns}[T]
 \begin{column}{0.45\textwidth}
 \centering
@@ -209,11 +211,12 @@ e_{([1],2)} + e_{([3],2)} & = &\be{2}{2} & \text{channel}
 
 \smallskip
 \begin{itemize}
-    \item Each MDD node $\rightarrow$ flow balance constraint (flow in = flow out)
+    \item Each \gls{mdd} node $\rightarrow$ flow balance constraint (flow in = flow out)
     \item Source/sink: total flow = 1 (exactly one row active)
     \item Channel: edge variables $\leftrightarrow$ Boolean encoding variables $\be{i}{j}$
 \end{itemize}
 \end{frame}
+
 
 \begin{frame}{Encoding Comparison -- Theory}
 \begin{center}
@@ -223,7 +226,7 @@ e_{([1],2)} + e_{([3],2)} & = &\be{2}{2} & \text{channel}
 \midrule
 New variables & $m$ & $m + \sum |D(x_i)|$ & $|EV|$ \\
 Constraints & $k + 1$ & $\sum |D(x_i)| + 1$ & $|VM| + \sum |D(x_i)|$ \\
-LP relaxation & \multicolumn{2}{c}{equivalent} & equivalent to \baseBool \\
+\gls{lp} relaxation & \multicolumn{2}{c}{equivalent} & equivalent to \baseBool \\
 Totally unimodular & no & no & \textbf{yes} (flow) \\
 Size vs.\ table & $O(mk)$ & $O(mk)$ & up to \textbf{exp.\ smaller} \\
 \bottomrule
@@ -231,36 +234,49 @@ Size vs.\ table & $O(mk)$ & $O(mk)$ & up to \textbf{exp.\ smaller} \\
 \end{center}
 
 \bigskip
-All three encodings give the same LP relaxation on $\hat{x}$, but:
+All three encodings give the same \gls{lp} relaxation on $\hat{x}$, but:
 \begin{itemize}
     \item \baseBool enables stronger reasoning when binary variables appear elsewhere
     \item \baseMdd can be exponentially more compact and is totally unimodular
 \end{itemize}
 \end{frame}
+}
 
 %===============================================================================
 \section{Lazy Cut Generation}
 %===============================================================================
 
-\begin{frame}{Cut Generation for Tables}
-\begin{itemize}
-    \item Alternative to full encoding: \textbf{lazy constraint generation} (Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
-    \item Only add constraints when the solver finds a violating solution
-    \item Useful when tables are large (many rows)
-\end{itemize}
+\begin{frame}{Lazy Cut Generation for Tables}
 
-\bigskip
-\textbf{Key idea:} Use the Boolean encoding variables $\be{i}{j}$
-\begin{itemize}
-    \item Without them, valid cuts may not exist over integer variables alone
-    \item Cuts are of the form: $\sum_{\col \in X} b_\col \leq |X| - 1$ \quad (a clause / nogood)
-\end{itemize}
+Another big \gls{ilp} tool: \textbf{lazy cut generation} (row generation, logic-based Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
 
-\medskip
-\textbf{Example:} Assignment $\hat{v} = (2,2,2)$ is not in the table.\\
-Simple cut: $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$\\
-Stronger cut: $\be{1}{2} + \be{2}{2} \leq 1$ \quad (also cuts $(2,2,1)$ and $(2,2,3)$)
+\begin{enumerate}
+    \item Solve without encoding tables
+    \item If assignment $\hat{v}$ violates tables, generate a \textbf{cut} (violating $\hat{v}$ but not the table)
+    \item Repeat until $\hat{v}$ satisfies all tables
+\end{enumerate}
+
+% \bigskip
+% \textbf{Key idea:} Use the Boolean encoding variables $\be{i}{j}$
+% \begin{itemize}
+%     \item Without them, valid cuts may not exist over integer variables alone
+%     \item Cuts are of the form: $\sum_{\col \in X} b_\col \leq |X| - 1$ \quad (a clause / nogood)
+% \end{itemize}
+
+\vfill
+
+\textbf{Example:} Assignment $\hat{v} = (2,2,2)$ is not in the table, so we generate a cut:
+
+\begin{equation*}
+\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2
+\end{equation*}
+
+Note this is a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{3}{2}$
+
+% Stronger cut: $\be{1}{2} + \be{2}{2} \leq 1$ \quad (also cuts $(2,2,1)$ and $(2,2,3)$)
 \end{frame}
+
+\ignore{
 
 \begin{frame}{The \lazyGenerate Algorithm}
 \begin{columns}[T]
@@ -288,6 +304,8 @@ Stronger cut: $\be{1}{2} + \be{2}{2} \leq 1$ \quad (also cuts $(2,2,1)$ and $(2,
 \end{column}
 \end{columns}
 \end{frame}
+
+}
 
 \newcommand{\violated}{\cellcolor{red!20}}
 \newcommand{\accepted}{\cellcolor{blue!15}}
@@ -354,11 +372,129 @@ ${\color{blue}\be{1}{2} + \be{2}{2}} \leq 1$ \quad \checkmark%
 }%
 \end{frame}
 
-\begin{frame}{Extension 1: Fractional Cuts (\lazyFractional)}
+\ignore{
+
+\begin{frame}{Extension 2: Cut Lifting (\lazyCutlift)}
+\begin{itemize}
+    \item After generating a valid cut, \textbf{strengthen} it by adding more terms
+    \item Add variable $b_{\col'}$ if it doesn't violate any table row
+    \item Key concept: \textbf{tight rows} -- rows where LHS $= \rhs$
+    \begin{itemize}
+        \item Can only lift variables not appearing in any tight row
+        \item New lifts may create new tight rows $\Rightarrow$ iterate
+    \end{itemize}
+    \item Coefficients $a_{\col'} = \min\{\rhs - RS_r : \text{non-tight } r \text{ with } \btable_{r\col'} = 1\}$
+\end{itemize}
+
+\bigskip
+\textbf{Example:} Start with $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
+\begin{enumerate}
+    \item Lift $\be{1}{4}$ with coefficient 2
+    \item Lift $\be{3}{1}$ with coefficient 1
+    \item Lift $\be{1}{1}$ with coefficient 1
+    \item Result: $\be{1}{1} + \be{1}{2} + 2\be{1}{4} + \be{2}{2} + \be{3}{1} + \be{3}{2} \leq 2$
+\end{enumerate}
+\end{frame}
+
+}
+
+\begin{frame}{\lazyCutlift Example: strengthening $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$}
+
+
+After generating a valid cut, \textbf{strengthen} it by adding more terms
+
+\newcommand{\tight}{\cellcolor{orange!25}}
+\let\lifted\tight
+\let\blocked\tight
+\newcommand{\fracval}{\cellcolor{yellow!25}}
+\newcommand{\wholeval}{\cellcolor{blue!15}}
+\newcommand{\nonfeasible}{\cellcolor{red!15}}
+\newcommand{\inU}{\cellcolor{green!20}}
+
+\centering
+\smallskip
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{c|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering\arraybackslash}p{\tblcw}|c}
+% Column headers: grey background when in Xtight
+ & \only<4->{\blocked}$\only<4->{\color{blue}}\besml{1}{1}$
+ & \blocked$\color{blue}\besml{1}{2}$
+ & \blocked$\besml{1}{3}$
+ & \only<2->{\blocked}$\only<2->{\color{blue}}\besml{1}{4}$
+ & \blocked$\besml{2}{1}$
+ & \blocked$\color{blue}\besml{2}{2}$
+ & \only<2->{\blocked}$\besml{2}{3}$
+ & \only<3->{\blocked}$\only<3->{\color{blue}}\besml{3}{1}$
+ & \blocked$\color{blue}\besml{3}{2}$
+ & \only<2->{\blocked}$\besml{3}{3}$
+ & $RS$ \\
+\hline
+% Row 1: RS=1. Tight at step 3 (lift be{3}{1}, a=1, RS->2)
+\only<3->{\tight}%
+$1$
+ & 0 & \tight 1 & 0 & 0
+ & 1 & 0 & 0
+ & \only<3->{\tight}1 & 0 & 0
+ & \only<1>{1}\only<2>{1}\only<3->{\textbf{2}} \\
+% Row 2: RS=2. Tight from the start
+\tight%
+$2$
+ & 0 & 0 & 1 & 0
+ & 0 & \tight 1 & 0
+ & 0 & \tight 1 & 0
+ & \textbf{2} \\
+% Row 3: RS=0. Tight at step 2 (lift be{1}{4}, a=2, RS->2)
+\only<2->{\tight}%
+$3$
+ & 0 & 0 & 0 & \only<2->{\tight}1
+ & 0 & 0 & 1
+ & 0 & 0 & 1
+ & \only<1>{0}\only<2->{\textbf{2}} \\
+% Row 4: RS=1. Tight at step 4 (lift be{1}{1}, a=1, RS->2)
+\only<4->{\tight}%
+$4$
+ & \only<4->{\tight}1 & 0 & 0 & 0
+ & 0 & \tight 1 & 0
+ & 0 & 0 & 1
+ & \only<1-3>{1}\only<4->{\textbf{2}} \\
+% Row 5: RS=2. Tight from the start
+\tight%
+$5$
+ & 0 & \tight 1 & 0 & 0
+ & 1 & 0 & 0
+ & 0 & \tight 1 & 0
+ & \textbf{2} \\
+\end{tabular}
+
+\bigskip
+\only<1>{%
+Cut: ${\color{blue}\be{1}{2}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{2}} \leq 2$
+\quad {\small Tight rows: \{2,5\}. \colorbox{orange!25}{Tight} columns cannot be lifted.}%
+}%
+\only<2>{%
+Lift ${\color{blue}\be{1}{4}}$ with $a=2$: \quad
+${\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{2}} \leq 2$
+\quad {\small row 3 now tight}%
+}%
+\only<3>{%
+Lift ${\color{blue}\be{3}{1}}$ with $a=1$: \quad
+${\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{1}} + {\color{blue}\be{3}{2}} \leq 2$
+\quad {\small row 1 now tight}%
+}%
+\only<4>{%
+Lift ${\color{blue}\be{1}{1}}$ with $a=1$: \quad
+${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{1}} + {\color{blue}\be{3}{2}} \leq 2$
+\quad \checkmark {\small all tight, all \colorbox{orange!25}{blocked}}%
+}%
+\end{frame}
+
+\ignore{
+
+\begin{frame}{Fractional Cuts (\lazyFractional)}
 \begin{columns}[T]
 \begin{column}{0.62\textwidth}
 \begin{itemize}
-    \item ILP solvers can call callbacks on \textbf{fractional LP solutions} too
+    \item \gls{ilp} solvers can call callbacks on \textbf{fractional \gls{lp} solutions} too
     \item Identify fractional columns not appearing in any feasible row
     \item If such a column exists $\Rightarrow$ use it to seed \lazyGenerate
     \item If not ($U = \emptyset$) $\Rightarrow$ solution may be in the convex hull, skip
@@ -428,13 +564,6 @@ $r_5$ & 1 & 2 \\
 \end{columns}
 \end{frame}
 
-\newcommand{\tight}{\cellcolor{orange!25}}
-\let\lifted\tight
-\let\blocked\tight
-\newcommand{\fracval}{\cellcolor{yellow!25}}
-\newcommand{\wholeval}{\cellcolor{blue!15}}
-\newcommand{\nonfeasible}{\cellcolor{red!15}}
-\newcommand{\inU}{\cellcolor{green!20}}
 \begin{frame}{\lazyFractional Example: $\hat{v} = (0, 0.5, 0.5, 0, 0, 1, 0, 0.5, 0.5, 0)$}
 
 \centering
@@ -565,113 +694,19 @@ Choose ${\color{blue}\be{1}{2}}$, expand $\Rightarrow$ cut: ${\color{blue}\be{1}
 {\scriptsize Tetrahedron: $r_2$ lies on edge $r_1$--$r_3$. \quad
 $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \end{frame}
+}
 
-\begin{frame}{Extension 2: Cut Lifting (\lazyCutlift)}
-\begin{itemize}
-    \item After generating a valid cut, \textbf{strengthen} it by adding more terms
-    \item Add variable $b_{\col'}$ if it doesn't violate any table row
-    \item Key concept: \textbf{tight rows} -- rows where LHS $= \rhs$
-    \begin{itemize}
-        \item Can only lift variables not appearing in any tight row
-        \item New lifts may create new tight rows $\Rightarrow$ iterate
-    \end{itemize}
-    \item Coefficients $a_{\col'} = \min\{\rhs - RS_r : \text{non-tight } r \text{ with } \btable_{r\col'} = 1\}$
-\end{itemize}
 
-\bigskip
-\textbf{Example:} Start with $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
-\begin{enumerate}
-    \item Lift $\be{1}{4}$ with coefficient 2
-    \item Lift $\be{3}{1}$ with coefficient 1
-    \item Lift $\be{1}{1}$ with coefficient 1
-    \item Result: $\be{1}{1} + \be{1}{2} + 2\be{1}{4} + \be{2}{2} + \be{3}{1} + \be{3}{2} \leq 2$
-\end{enumerate}
-\end{frame}
 
-\begin{frame}{\lazyCutlift Example: strengthening $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$}
 
-\centering
-\smallskip
-\small
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{c|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering\arraybackslash}p{\tblcw}|c}
-% Column headers: grey background when in Xtight
- & \only<4->{\blocked}$\only<4->{\color{blue}}\besml{1}{1}$
- & \blocked$\color{blue}\besml{1}{2}$
- & \blocked$\besml{1}{3}$
- & \only<2->{\blocked}$\only<2->{\color{blue}}\besml{1}{4}$
- & \blocked$\besml{2}{1}$
- & \blocked$\color{blue}\besml{2}{2}$
- & \only<2->{\blocked}$\besml{2}{3}$
- & \only<3->{\blocked}$\only<3->{\color{blue}}\besml{3}{1}$
- & \blocked$\color{blue}\besml{3}{2}$
- & \only<2->{\blocked}$\besml{3}{3}$
- & $RS$ \\
-\hline
-% Row 1: RS=1. Tight at step 3 (lift be{3}{1}, a=1, RS->2)
-\only<3->{\tight}%
-$1$
- & 0 & \tight 1 & 0 & 0
- & 1 & 0 & 0
- & \only<3->{\tight}1 & 0 & 0
- & \only<1>{1}\only<2>{1}\only<3->{\textbf{2}} \\
-% Row 2: RS=2. Tight from the start
-\tight%
-$2$
- & 0 & 0 & 1 & 0
- & 0 & \tight 1 & 0
- & 0 & \tight 1 & 0
- & \textbf{2} \\
-% Row 3: RS=0. Tight at step 2 (lift be{1}{4}, a=2, RS->2)
-\only<2->{\tight}%
-$3$
- & 0 & 0 & 0 & \only<2->{\tight}1
- & 0 & 0 & 1
- & 0 & 0 & 1
- & \only<1>{0}\only<2->{\textbf{2}} \\
-% Row 4: RS=1. Tight at step 4 (lift be{1}{1}, a=1, RS->2)
-\only<4->{\tight}%
-$4$
- & \only<4->{\tight}1 & 0 & 0 & 0
- & 0 & \tight 1 & 0
- & 0 & 0 & 1
- & \only<1-3>{1}\only<4->{\textbf{2}} \\
-% Row 5: RS=2. Tight from the start
-\tight%
-$5$
- & 0 & \tight 1 & 0 & 0
- & 1 & 0 & 0
- & 0 & \tight 1 & 0
- & \textbf{2} \\
-\end{tabular}
 
-\bigskip
-\only<1>{%
-Cut: ${\color{blue}\be{1}{2}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{2}} \leq 2$
-\quad {\small Tight rows: \{2,5\}. \colorbox{orange!25}{Tight} columns cannot be lifted.}%
-}%
-\only<2>{%
-Lift ${\color{blue}\be{1}{4}}$ with $a=2$: \quad
-${\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{2}} \leq 2$
-\quad {\small row 3 now tight}%
-}%
-\only<3>{%
-Lift ${\color{blue}\be{3}{1}}$ with $a=1$: \quad
-${\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{1}} + {\color{blue}\be{3}{2}} \leq 2$
-\quad {\small row 1 now tight}%
-}%
-\only<4>{%
-Lift ${\color{blue}\be{1}{1}}$ with $a=1$: \quad
-${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{1}} + {\color{blue}\be{3}{2}} \leq 2$
-\quad \checkmark {\small all tight, all \colorbox{orange!25}{blocked}}%
-}%
-\end{frame}
+\ignore{
 
 \begin{frame}{Hybrid Eager-Lazy Approach (\lazyCutoff)}
 \begin{itemize}
     \item For each table constraint, choose:
     \begin{itemize}
-        \item \textbf{Eager} encoding (MDD-based) for \emph{small} tables
+        \item \textbf{Eager} encoding (\gls{mdd}-based) for \emph{small} tables
         \item \textbf{Lazy} cut generation for \emph{large} tables
     \end{itemize}
     \item Threshold based on number of rows (e.g., 1000, 2000, 3000)
@@ -694,6 +729,8 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 \end{center}
 \end{frame}
 
+	}
+
 %===============================================================================
 \section{Experimental Evaluation}
 %===============================================================================
@@ -701,12 +738,11 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 \begin{frame}{Experimental Setup}
 \begin{description}
     \item[Benchmarks] XCSP3 competition instances (2022--2025)~\cite{audemard2025proceedings2025xcsp3competition}\\
-    180 CSP + 247 COP instances with table constraints
-    \item[Solver] Gurobi 13.0.1~\cite{gurobi} (ILP solver)
+    180 \gls{csp} + 247 \gls{cop} instances with table constraints
+    \item[Solver] Gurobi 13.0.1~\cite{gurobi} (\gls{ilp} solver)
     \item[Implementation] Python + CPMpy v0.10.0~\cite{guns2019increasing} (loading, linearization, cut generation)
     \item[Resources] Single core, 600s time limit, 8GB memory limit
 \end{description}
-
 \bigskip
 \textbf{Experimental questions:}
 \begin{enumerate}
@@ -717,7 +753,7 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 \end{frame}
 
 \newcommand{\NA}{--}
-\begin{frame}{Results -- CSP (180 instances)}
+\begin{frame}{Results -- \gls{csp} (180 instances)}
 \centering
 \small
 \input{analysis/table-csp.tex}
@@ -726,7 +762,9 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 {\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
 \end{frame}
 
-\begin{frame}{Results -- COP (247 instances)}
+\ignore{
+
+\begin{frame}{Results -- \gls{cop} (247 instances)}
 \centering
 \small
 \input{analysis/table-cop.tex}
@@ -735,17 +773,21 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 {\scriptsize pst = posted, sat = feasible, sol = solved/optimal. Time = PAR2 avg [s.]}
 \end{frame}
 
+}
+
+\ignore{
+
 \begin{frame}{Q1: Impact of Encodings}
 
-\textbf{CSP instances:}
+\textbf{\gls{csp} instances:}
 \begin{itemize}
     \item \baseBool outperforms \baseGleb (nominal variables benefit from direct encoding)
     \item \baseMddDomIncr outperforms \baseBool by 7 additional solved instances, and \baseMddInput by 9
-    \item Column ordering matters: domain-increasing heuristic helps merge MDD nodes
+    \item Column ordering matters: domain-increasing heuristic helps merge \gls{mdd} nodes
 \end{itemize}
 
 \bigskip
-\textbf{COP instances:}
+\textbf{\gls{cop} instances:}
 \begin{itemize}
     \item Differences are smaller (channelling costs for objectives)
     \item \baseMddInput and \baseMddDomIncr best for proving optimality
@@ -758,7 +800,7 @@ $\Rightarrow$ \textbf{Novel encodings consistently outperform the standard \base
 
 \begin{frame}{Q2: Impact of Cut Generation Extensions}
 
-\textbf{CSP instances:}
+\textbf{\gls{csp} instances:}
 \begin{itemize}
     \item \lazyFractional: slight improvement in time
     \item \lazyCutlift: +11 feasible instances over \lazyGenerate; fewer, stronger cuts
@@ -766,7 +808,7 @@ $\Rightarrow$ \textbf{Novel encodings consistently outperform the standard \base
 \end{itemize}
 
 \bigskip
-\textbf{COP instances:}
+\textbf{\gls{cop} instances:}
 \begin{itemize}
     \item Similar trend: \lazyCutlift has largest impact
     \item \lazyCutlift proves 5 more optimal than \lazyAll, but \lazyAll finds more feasible
@@ -776,17 +818,20 @@ $\Rightarrow$ \textbf{Novel encodings consistently outperform the standard \base
 $\Rightarrow$ \textbf{Cut lifting is the most impactful extension; combining both is best overall}
 \end{frame}
 
+}
+
+
 \begin{frame}{Q3: Eager vs.\ Lazy -- Scatter Plots}
 \begin{columns}[T]
 \begin{column}{0.48\textwidth}
 \centering
 \includesvg[height=0.7\textheight]{analysis/scatter-CSP-\compare.svg}
-\\{\small CSP instances}
+\\{\small \gls{csp} instances}
 \end{column}
 \begin{column}{0.48\textwidth}
 \centering
 \includesvg[height=0.7\textheight]{analysis/scatter-COP-\compare.svg}
-\\{\small COP instances}
+\\{\small \gls{cop} instances}
 \end{column}
 \end{columns}
 
@@ -794,25 +839,30 @@ $\Rightarrow$ \textbf{Cut lifting is the most impactful extension; combining bot
 {\small Solve time [s.]: \lazyAll (x-axis) vs.\ \baseMddDomIncr (y-axis). Colour = median table rows.}
 \end{frame}
 
+\ignore{
+
 \begin{frame}{Q3: Eager vs.\ Lazy -- Complementarity}
 \begin{itemize}
     \item Globally, eager encodings outperform lazy (especially for optimality proofs)
     \item But lazy excels at finding \textbf{feasible solutions} and on \textbf{large tables}
-    \item Clear correlation for CSP: small tables $\to$ eager, large tables $\to$ lazy
+    \item Clear correlation for \gls{csp}: small tables $\to$ eager, large tables $\to$ lazy
 \end{itemize}
 
 \bigskip
 \textbf{Hybrid results:}
 \begin{itemize}
     \item \lazyCutoffT{2000} strikes the best balance
-    \item For CSP: all hybrid approaches outperform the best pure encoding
-    \item For COP: comparable optimality, more feasible solutions
+    \item For \gls{csp}: all hybrid approaches outperform the best pure encoding
+    \item For \gls{cop}: comparable optimality, more feasible solutions
     \item Drastically reduces cuts needed while maintaining encoding quality for small tables
 \end{itemize}
+
 
 \bigskip
 $\Rightarrow$ \textbf{The two paradigms are complementary; hybridization improves the state of the art}
 \end{frame}
+
+}
 
 %===============================================================================
 \section{Conclusion}
@@ -821,8 +871,8 @@ $\Rightarrow$ \textbf{The two paradigms are complementary; hybridization improve
 \begin{frame}{Conclusion \& Future Work}
 \textbf{Summary:}
 \begin{itemize}
-    \item Studied table constraints for ILP: eager encodings and lazy cut generation
-    \item Novel Boolean and MDD-based encodings outperform standard methods
+    \item Studied table constraints for \gls{ilp}: eager encodings and lazy cut generation
+    \item Novel Boolean and \gls{mdd}-based encodings outperform standard methods
     \item Cut generation with fractional cuts + cut lifting improves lazy approach
     \item Hybrid approach combines the strengths of both paradigms
 \end{itemize}
@@ -832,7 +882,7 @@ $\Rightarrow$ \textbf{The two paradigms are complementary; hybridization improve
 \begin{itemize}
     \item Better understanding of which tables suit which method (sparsity, structure)
     \item Extend to \emph{negative tables} and \emph{smart tables}
-    \item MDD construction for negative tables exists; open question for smart tables
+    \item \gls{mdd} construction for negative tables exists; open question for smart tables
 \end{itemize}
 \end{frame}
 
@@ -842,6 +892,20 @@ $\Rightarrow$ \textbf{The two paradigms are complementary; hybridization improve
 
 \bigskip
 \Large Questions?
+
+\vfill
+\begin{columns}[c]
+\begin{column}{0.3\textwidth}
+\centering
+\includesvg[height=2.5cm]{qr-paper}\\
+{\small Paper}
+\end{column}
+\begin{column}{0.3\textwidth}
+\centering
+\includesvg[height=2.5cm]{qr-code}\\
+{\small Code}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}[allowframebreaks]{References}
