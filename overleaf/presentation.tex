@@ -315,8 +315,11 @@ All three encodings give the same \gls{lp} relaxation on $\hat{x}$, but:
 Another big \gls{ilp} tool: \textbf{lazy cut generation} (row generation, logic-based Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
 
 \begin{enumerate}
-    \item Solve without encoding tables
-    \item If assignment $\hat{v}$ violates tables, generate a \textbf{cut} (violating $\hat{v}$ but not the table)
+	\item Solve without encoding tables, get assignment $\hat{v}$ (\eg $\hat{v} = \sequence{2,2,2}$)
+	\item If $\hat{v}$ violates a table, generate a \textbf{cut} (violating $\hat{v}$ but not the table)
+		\begin{itemize}
+			\item \eg $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
+		\end{itemize}
     \item Repeat until $\hat{v}$ satisfies all tables
 \end{enumerate}
 
@@ -327,17 +330,18 @@ Another big \gls{ilp} tool: \textbf{lazy cut generation} (row generation, logic-
 %     \item Cuts are of the form: $\sum_{\col \in X} b_\col \leq |X| - 1$ \quad (a clause / nogood)
 % \end{itemize}
 
-\vfill
 
-\textbf{Example:} Assignment $\hat{v} = (2,2,2)$ is not in the table, so we generate a cut:
+Note this cut a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{3}{2}$
 
-\begin{equation*}
-\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2
-\end{equation*}
+Can we generate a strong cut, \eg $\be{1}{2} + \be{2}{2} \leq 1$?
 
-Note this is a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{3}{2}$
-
-% Stronger cut: $\be{1}{2} + \be{2}{2} \leq 1$ \quad (also cuts $(2,2,1)$ and $(2,2,3)$)
+%
+% \textbf{Example:} Assignment $\hat{v} = (2,2,2)$ is not in the table, so we generate a cut:
+% \begin{equation*}
+% \be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2
+% \end{equation*}
+% Note this is a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{3}{2}$
+% % Stronger cut: $\be{1}{2} + \be{2}{2} \leq 1$ \quad (also cuts $(2,2,1)$ and $(2,2,3)$)
 \end{frame}
 
 \ignore{
@@ -827,15 +831,15 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \baseBool & 147 & {} & 69 & 771.5 & 25670.4 & {\NA} \\
 \baseMddInput & 154 & {} & 67 & 780.8 & 38800.8 & {\NA} \\
 \baseMddDomIncr & 154 & {} & 76 & 728.5 & 30884.2 & {\NA} \\}
-\newcommand{\resultlazy}{%
-\lazyGenerate & 174 & {} & 36 & 988.6 & 8639.7 & 1857.5 \\
-\lazyFractional & 174 & {} & 36 & 980.9 & 8639.7 & 3202.6 \\
-\lazyCutlift & 174 & {} & 45 & 925.0 & 8639.7 & 847.1 \\
-\lazyAll & 174 & {} & 55 & 871.5 & 8639.7 & 1326.7 \\}
-\newcommand{\resulthybrid}{%
-\lazyCutoff (1000) & 174 & {} & 79 & 717.5 & 29635.4 & 49.9 \\
-\lazyCutoff (2000) & 174 & {} & \bfseries 80 & \bfseries 715.6 & 29912.8 & 49.9 \\
-\lazyCutoff (3000) & \bfseries 175 & {} & 78 & 716.7 & 30243.3 & 37.3 \\}
+\newcommand{\resultlazy}[1][]{%
+{#1\lazyGenerate} & {#1 174} & {#1} & {#1 36} & {#1 988.6} & {#1 8639.7} & {#1 1857.5} \\
+{#1\lazyFractional} & {#1 174} & {#1} & {#1 36} & {#1 980.9} & {#1 8639.7} & {#1 3202.6} \\
+{#1\lazyCutlift} & {#1 174} & {#1} & {#1 45} & {#1 925.0} & {#1 8639.7} & {#1 847.1} \\
+{#1\lazyAll} & {#1 174} & {#1} & {#1 55} & {#1 871.5} & {#1 8639.7} & {#1 1326.7} \\}
+\newcommand{\resulthybrid}[1][]{%
+{#1\lazyCutoff (1000)} & {#1 174} & {#1} & {#1 79} & {#1 717.5} & {#1 29635.4} & {#1 49.9} \\
+{#1\lazyCutoff (2000)} & {#1 174} & {#1} & {#1\bfseries 80} & {#1\bfseries 715.6} & {#1 29912.8} & {#1 49.9} \\
+{#1\lazyCutoff (3000)} & {#1\bfseries 175} & {#1} & {#1 78} & {#1 716.7} & {#1 30243.3} & {#1 37.3} \\}
 \newcommand{\resulttabular}[1]{%
 \begin{tabular}{lS[table-format=3.0]S[table-format=2.0]S[table-format=2.0]S[table-format=3.1]S[table-format=5.1]S[table-format=4.1]}
 \resultheader
@@ -845,9 +849,13 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \begin{frame}{Results -- \gls{csp} (180 instances)}
 \centering
 \small
-\only<1>{\resulttabular{\resultencoding}}%
-\only<2>{\resulttabular{\resultencoding \hline \resultlazy}}%
-\only<3->{\resulttabular{\resultencoding \hline \resultlazy \hline \resulthybrid}}%
+\resulttabular{%
+\resultencoding
+\hline
+\alt<2->{\resultlazy}{\resultlazy[\color{white}]}%
+\hline
+\alt<3->{\resulthybrid}{\resulthybrid[\color{white}]}%
+}
 
 \smallskip
 {\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
