@@ -91,7 +91,7 @@
 \begin{frame}{Simple Integer Encoding (\baseGleb)}
 \begin{itemize}
     \item Standard encoding by \citeNoun{Belov}{belov_improved_2016} (default in MiniZinc)
-    \item Row variables $r_i$ ($r_i = 1$ iff row $i$ chosen)
+    \item Binary variables $r_i \in \set{0,1}$ for each row $i$, s.t. $r_i = 1$ iff row $i$ chosen
     % \item Compact: $m$ new variables, $k{+}1$ constraints (with $m$ number of rows, $k$ number of columns)
 \end{itemize}
 
@@ -118,25 +118,52 @@ $\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
 \textbf{Example:}
 \[
 \begin{array}{rrrrrcl}
-r_1 &+ r_2& + r_3& + r_4& + r_5 &= &1 \\
-2 r_1& + 3r_2& + 4 r_3& + r_4& + 2r_5 &=& \x{1} \\
-r_1& + 2r_2& + 3 r_3& + 2r_4&+ r_5 &=& \x{2} \\
-r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& \x{3}
+ r_1 &+  r_2& +  r_3& + r_4& + r_5 &= &1 \\
+2 r_1& + 3r_2& + 4 r_3& + 1 r_4& + 2r_5 &=& \x{1} \\
+1 r_1& + 2r_2& + 3 r_3& + 2r_4&+ 1 r_5 &=& \x{2} \\
+1 r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& \x{3}
 \end{array}
 \]
 \end{column}
 \end{columns}
+
+\vfill
+	For example, if we choose row $1$, then $r_1 = 1$, so $\x{1} = 2 \cdot r_1 + 0 + \ldots + 0 = 2$
+
 \end{frame}
 
+
 \begin{frame}{Booleanized Encoding (\baseBool)~\cite{petit}}
-\begin{itemize}
-	\item The row index variable is \textit{nominal}, and so are the column variables $x_i$
-    % \item Key insight: table variables are often \emph{nominal} -- other constraints reason about $x_i = v$
-    \item Direct (unary) encoding: binary variable $\be{i}{j}$ for each value $j \in \dom{x_i}$
-    \item Rewrite integer table into Boolean 01 table $\btable$
-\end{itemize}
+
+	We booleanize $\x{1}$ with binary variables $\be{1}{j} \in \set{0,1}, j \in D(\x{1})$ such that $\be{1}{j} \Leftrightarrow \x{1} = j$:
+
+	\[
+	\sum_{j \in D(\x{1})} \be{1}{j} = 1, \qquad
+	\sum_{j \in D(\x{1})} j \cdot \be{1}{j} = \x{1}
+	\]
+
+
+% \begin{itemize}
+% 	\item The row index variable is \textit{nominal}, and so are the column variables $x_i$
+%     % \item Key insight: table variables are often \emph{nominal} -- other constraints reason about $x_i = v$
+%     \item Direct (unary) encoding: binary variable $\be{i}{j}$ for each value $j \in \dom{x_i}$
+%     \item Rewrite integer table into Boolean 01 table $\btable$
+% \end{itemize}
+
+	\vfill
+	And booleanize $T$ as a binary table $\btable$:
+	% the table $\texttt{table}(\sequence{\be{1}{1},\be{1}{2}, \ldots, \be{3}{3}}, \btable)$ as well:
 
 \[
+\begin{array}{rrr}
+\x{1} & \x{2} & \x{3} \\ \hline
+2 & 1 & 1 \\
+3 & 2 & 2 \\
+4 & 3 & 3 \\
+1 & 2 & 3 \\
+2 & 1 & 2
+\end{array}
+\quad \equiv \quad
 \begin{array}{l|rrrr|rrr|rrr}
 &  {\besml{1}{1}} & \besml{1}{2} & \besml{1}{3} & \besml{1}{4} & \besml{2}{1} & \besml{2}{2} & \besml{2}{3} & \besml{3}{1} & \besml{3}{2} & \besml{3}{3} \\ \hline
 &   0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0 \\
@@ -152,12 +179,53 @@ r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& \x{3}
 \end{frame}
 
 \begin{frame}{\gls{mdd}-based Flow Encoding (\baseMdd)}
+
+We can reformulate $\btable$ as a reduced \gls{mdd}~\cite{DBLP:journals/constraints/ChengY10}
+
+\[
+\vcenter{\hbox{$\begin{array}{rrr}
+\x{1} & \x{2} & \x{3} \\ \hline
+2 & 1 & 1 \\
+3 & 2 & 2 \\
+4 & 3 & 3 \\
+1 & 2 & 3 \\
+2 & 1 & 2
+\end{array}$}}
+\;\equiv\;
+\vcenter{\hbox{$\btable$}}
+\;\equiv\;
+\vcenter{\hbox{$\mddDiagram{12mm}{8mm}$}}
+\;\equiv\;
+	\text{flow constraints}
+% \vcenter{\hbox{$\scriptsize\begin{array}{rcl@{~~}l}
+% \be{1}{2} &= &\be{2}{1} & ([2])\\
+% \be{2}{1} &= &\be{3}{1} + e_{([2,1],2)} &([2,1]) \\
+% \be{1}{1} &= &e_{([1],2)} & ([1])\\
+% e_{([1],2)} + \be{2}{3} &=& \be{3}{3} & ([1,2], [4,3]) \\
+% \be{1}{4} & = & \be{2}{3} & ([4]) \\
+% \be{1}{3} &=& e_{([3],2)}  & ([3])\\
+% e_{([3],2)} &=& e_{([3,2],2)} & ([3,2])\\
+% \be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} &= &1 & ([]) \\
+% e_{([2,1],2)} + \be{3}{1} + \be{3}{3} + e_{([3,2],2)} &=& 1 & (snk)\\
+% e_{([2,1],2)} + e_{([3,2],2)} & = &\be{3}{2} \\
+% e_{([1],2)} + e_{([3],2)} & = &\be{2}{2} \\
+% \end{array}$}}
+\]
+
+	The \gls{mdd} can be \textbf{exponentially smaller}, the flow constraints are \textbf{totally unimodular}
+
+\ignore{
+
+
 \begin{columns}[T]
 \begin{column}{0.45\textwidth}
-\begin{itemize}
-    \item Encode table as a \textbf{reduced \gls{mdd}}~\cite{DBLP:journals/constraints/ChengY10} with nodes sharing prefixes
-    \item Encode (possibly exponentially smaller) \gls{mdd} as a (totally unimodular~\cite{ahuja1993network}) \textbf{flow network} (totally unimodular)
-\end{itemize}
+
+
+
+% \begin{itemize}
+%     \item Encode table as a \textbf{reduced \gls{mdd}}~\cite{DBLP:journals/constraints/ChengY10} with nodes sharing prefixes
+%     \item Encode (possibly exponentially smaller) \gls{mdd} as a (totally unimodular~\cite{ahuja1993network}) \textbf{flow network} (totally unimodular)
+% \end{itemize}
 
 \medskip
 Column ordering of the table matters:
@@ -167,13 +235,9 @@ Column ordering of the table matters:
 \end{itemize}
 \end{column}
 \begin{column}{0.5\textwidth}
-\centering
-\small
-\[
-\mddDiagram{10mm}{8mm}
-\]
-\end{column}
 \end{columns}
+
+	}
 \end{frame}
 
 \ignore{
@@ -754,10 +818,36 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \end{frame}
 
 \newcommand{\NA}{--}
+\newcommand{\resultheader}{%
+\toprule
+ & {\pst} & {\sat} & {\sol} & {time} & {constraints} & {cuts} \\
+\midrule}
+\newcommand{\resultencoding}{%
+\baseGleb & 171 & {} & 55 & 851.7 & 8249.3 & {\NA} \\
+\baseBool & 147 & {} & 69 & 771.5 & 25670.4 & {\NA} \\
+\baseMddInput & 154 & {} & 67 & 780.8 & 38800.8 & {\NA} \\
+\baseMddDomIncr & 154 & {} & 76 & 728.5 & 30884.2 & {\NA} \\}
+\newcommand{\resultlazy}{%
+\lazyGenerate & 174 & {} & 36 & 988.6 & 8639.7 & 1857.5 \\
+\lazyFractional & 174 & {} & 36 & 980.9 & 8639.7 & 3202.6 \\
+\lazyCutlift & 174 & {} & 45 & 925.0 & 8639.7 & 847.1 \\
+\lazyAll & 174 & {} & 55 & 871.5 & 8639.7 & 1326.7 \\}
+\newcommand{\resulthybrid}{%
+\lazyCutoff (1000) & 174 & {} & 79 & 717.5 & 29635.4 & 49.9 \\
+\lazyCutoff (2000) & 174 & {} & \bfseries 80 & \bfseries 715.6 & 29912.8 & 49.9 \\
+\lazyCutoff (3000) & \bfseries 175 & {} & 78 & 716.7 & 30243.3 & 37.3 \\}
+\newcommand{\resulttabular}[1]{%
+\begin{tabular}{lS[table-format=3.0]S[table-format=2.0]S[table-format=2.0]S[table-format=3.1]S[table-format=5.1]S[table-format=4.1]}
+\resultheader
+#1
+\bottomrule
+\end{tabular}}
 \begin{frame}{Results -- \gls{csp} (180 instances)}
 \centering
 \small
-\input{analysis/table-csp.tex}
+\only<1>{\resulttabular{\resultencoding}}%
+\only<2>{\resulttabular{\resultencoding \hline \resultlazy}}%
+\only<3->{\resulttabular{\resultencoding \hline \resultlazy \hline \resulthybrid}}%
 
 \smallskip
 {\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
