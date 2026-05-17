@@ -35,7 +35,7 @@
 \newcommand{\scrap}[1]{}
 \newcommand{\ignore}[1]{}
 
-\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\red}[1]{\textcolor{blue}{#1}}
 
 % ── Math notation ────────────────────────────────────────────────────────────
 \newcommand{\brackets}[1]{\ensuremath{[\![#1]\!]}}
@@ -171,6 +171,40 @@ $\btable \models \sum_{\col \in X \cup \set{\colLift}} a_\col b_\col \leq \rhs$.
    & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
    & \xyo{[4]} \ar[r]_{\be{2}{3}}
        & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}}
+       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+}%
+}
+\newcommand{\mddDiagramHighlight}[2]{% same but with path 1,2,3 highlighted
+\xymatrix@C=#1@R=#2{
+   \xyo{[]}
+       \ar[r]^{\be{1}{2}}
+       \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
+       \ar[rdd]^>>>>>>{\be{1}{4}}
+       \ar[rddd]_{\be{1}{3}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}}
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{snk} \\
+   & \xyo{\textcolor{blue}{[1]}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{[4]} \ar[r]_{\be{2}{3}}
+       & \xyo{\textcolor{blue}{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]}} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}}
+       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+}%
+}
+\newcommand{\mddDiagramHighlightBoth}[2]{% paths 1,2,3 (blue) and 4,3,3 (red)
+\xymatrix@C=#1@R=#2{
+   \xyo{[]}
+       \ar[r]^{\be{1}{2}}
+       \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
+       \ar@[red][rdd]^>>>>>>{\textcolor{red}{\be{1}{4}}}
+       \ar[rddd]_{\be{1}{3}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}}
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{snk} \\
+   & \xyo{\textcolor{blue}{[1]}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{\textcolor{red}{[4]}} \ar@[red][r]_{\textcolor{red}{\be{2}{3}}}
+       & \xyo{\textcolor{violet}{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]}} \ar@[violet][ruu]^{\textcolor{violet}{\be{3}{3}}} \\
    & \xyo{[3]} \ar[r]^{\be{2}{2}}
        & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
 }%

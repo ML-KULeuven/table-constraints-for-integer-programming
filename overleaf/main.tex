@@ -458,7 +458,7 @@ Note also that prefixes $[1,2]$ and $[4,3]$ share the same set of suffixes in th
 \label{fig:mdd}
 \end{figure}
 
-The algorithm to convert a table to a reduced \gls{mdd}, as in~\cref{fig:mdd}, runs in $O(m \times k)$~\cite{DBLP:journals/constraints/ChengY10}. 
+The algorithm to convert a table to a reduced \glsfull{mdd}, as in~\cref{fig:mdd}, runs in $O(m \times k)$~\cite{DBLP:journals/constraints/ChengY10}. 
 
 Since a table constraint requires that exactly one row is active, we can encode the \gls{mdd} as a flow network, where the flow from the root to the sink is exactly 1. This flow network directly leads to integer linear constraints. Since the \gls{mdd} has at most one node per entry in the integer table (apart from the source node), the number of flow constraints is $O(m \times k)$.
 We create a set $EV$ consisting of a 01 edge variable $e_{(s',j)}$ for each directed edge $(E(s),E(s \pp [j]))$ where

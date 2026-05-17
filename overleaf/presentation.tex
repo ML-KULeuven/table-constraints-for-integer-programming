@@ -178,23 +178,23 @@ $\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
 % Equivalent \gls{lp} relaxation to \baseGleb, but \textbf{stronger model} when binary variables used elsewhere.
 \end{frame}
 
-\begin{frame}{\gls{mdd}-based Flow Encoding (\baseMdd)}
+\begin{frame}{MDD-based Flow Encoding (\baseMdd)}
 
-We can reformulate $\btable$ as a reduced \gls{mdd}~\cite{DBLP:journals/constraints/ChengY10}
+We can reformulate $\btable$ as a reduced Multi-valued Decision Diagram (MDD)~\cite{DBLP:journals/constraints/ChengY10}
 
 \[
 \vcenter{\hbox{$\begin{array}{rrr}
 \x{1} & \x{2} & \x{3} \\ \hline
 2 & 1 & 1 \\
 3 & 2 & 2 \\
-4 & 3 & 3 \\
-1 & 2 & 3 \\
+\alt<3->{\textcolor{red}{4} & \textcolor{red}{3} & \textcolor{red}{3}}{4 & 3 & 3} \\
+\alt<2->{\textcolor{blue}{1} & \textcolor{blue}{2} & \textcolor{blue}{3}}{1 & 2 & 3} \\
 2 & 1 & 2
 \end{array}$}}
 \;\equiv\;
 \vcenter{\hbox{$\btable$}}
 \;\equiv\;
-\vcenter{\hbox{$\mddDiagram{12mm}{8mm}$}}
+\vcenter{\hbox{$\alt<3->{\mddDiagramHighlightBoth{12mm}{8mm}}{\alt<2>{\mddDiagramHighlight{12mm}{8mm}}{\mddDiagram{12mm}{8mm}}}$}}
 \;\equiv\;
 	\text{flow constraints}
 % \vcenter{\hbox{$\scriptsize\begin{array}{rcl@{~~}l}
@@ -212,7 +212,7 @@ We can reformulate $\btable$ as a reduced \gls{mdd}~\cite{DBLP:journals/constrai
 % \end{array}$}}
 \]
 
-	The \gls{mdd} can be \textbf{exponentially smaller}, the flow constraints are \textbf{totally unimodular}
+	The MDD can be \textbf{exponentially smaller}, the flow constraints are \textbf{totally unimodular}
 
 \ignore{
 
