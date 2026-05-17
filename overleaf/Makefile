@@ -15,7 +15,7 @@ main.pdf: main.tex prelude.tex references.bib $(SVG_PDFS)
 	$(TEX) main.tex
 	$(TEX) main.tex
 
-presentation.pdf: presentation.tex references.bib
+presentation.pdf: presentation.tex prelude.tex references.bib
 	$(TEX) presentation.tex
 	bibtex presentation
 	$(TEX) presentation.tex

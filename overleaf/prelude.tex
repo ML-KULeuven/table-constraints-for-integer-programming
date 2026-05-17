@@ -41,7 +41,9 @@
 \newcommand{\brackets}[1]{\ensuremath{[\![#1]\!]}}
 \newcommand{\iverson}[1]{\ensuremath{\langle #1 \rangle}}
 \newcommand{\beq}[2]{\brackets{#1 = #2}}
-\newcommand{\be}[2]{\beq{x_{#1}}{#2}}
+\newcommand{\bevarlookup}[1]{\ifnum9<1#1 \ifcase#1\or x\or y\or z\fi\else x_{#1}\fi}
+\newcommand{\x}[1]{\bevarlookup{#1}}
+\newcommand{\be}[2]{\beq{\bevarlookup{#1}}{#2}}
 \newcommand{\besml}[2]{\scriptstyle\be{#1}{#2}}
 
 \newcommand{\citeNoun}[2]{#1~\emph{et al.}~\cite{#2}}

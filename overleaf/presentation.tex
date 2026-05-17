@@ -71,10 +71,10 @@
 % \end{itemize}
 
 \medskip
-	\textbf{Running example:} \texttt{table}($[x_1, x_2, x_3], T$) with enforces $\hat{x}$ to take one row of $T$:
+	\textbf{Running example:} \texttt{table}($[\x{1}, \x{2}, \x{3}], T$) with enforces $\hat{x}$ to take one row of $T$:
 \[
 \begin{array}{rrr}
-x_1 & x_2 & x_3 \\ \hline
+\x{1} & \x{2} & \x{3} \\ \hline
 2 & 1 & 1 \\
 3 & 2 & 2 \\
 4 & 3 & 3 \\
@@ -99,7 +99,7 @@ x_1 & x_2 & x_3 \\ \hline
 \begin{column}{0.18\textwidth}
 \textbf{Table $T$:}\\[0.5em]
 \begin{tabular}{ccc}
-$x_1$ & $x_2$ & $x_3$ \\ \hline
+$\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
 2 & 1 & 1 \\
 3 & 2 & 2 \\
 4 & 3 & 3 \\
@@ -119,9 +119,9 @@ $x_1$ & $x_2$ & $x_3$ \\ \hline
 \[
 \begin{array}{rrrrrcl}
 r_1 &+ r_2& + r_3& + r_4& + r_5 &= &1 \\
-2 r_1& + 3r_2& + 4 r_3& + r_4& + 2r_5 &=& x_1 \\
-r_1& + 2r_2& + 3 r_3& + 2r_4&+ r_5 &=& x_2 \\
-r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& x_3
+2 r_1& + 3r_2& + 4 r_3& + r_4& + 2r_5 &=& \x{1} \\
+r_1& + 2r_2& + 3 r_3& + 2r_4&+ r_5 &=& \x{2} \\
+r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& \x{3}
 \end{array}
 \]
 \end{column}
@@ -295,9 +295,9 @@ Note this is a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{
 \textbf{Example:} Cut $\assignment = (2,2,2)$
 \begin{enumerate}
     \item $X{=}\emptyset, \rhs{=}{-}1, R{=}\{1..5\}$
-    \item Choose $x_1$: add $\be{1}{2}$\\
+    \item Choose $\x{1}$: add $\be{1}{2}$\\
           $\rhs{=}0, R{=}\{1,5\}$
-    \item Choose $x_2$: add $\be{2}{2}$\\
+    \item Choose $\x{2}$: add $\be{2}{2}$\\
           $\rhs{=}1, R{=}\emptyset$
     \item Return $\be{1}{2} + \be{2}{2} \leq 1$
 \end{enumerate}
@@ -363,11 +363,11 @@ $5$
 Cut: $0 \leq -1$ \quad {\small (all rows violated)}%
 }%
 \only<2>{%
-Choose $x_1$, add $\be{1}{2}$: \quad
+Choose $\x{1}$, add $\be{1}{2}$: \quad
 ${\color{blue}\be{1}{2}} \leq 0$ \quad {\small (rows 1,5 still violated)}%
 }%
 \only<3>{%
-Choose $x_2$, add $\be{2}{2}$: \quad
+Choose $\x{2}$, add $\be{2}{2}$: \quad
 ${\color{blue}\be{1}{2} + \be{2}{2}} \leq 1$ \quad \checkmark%
 }%
 \end{frame}
@@ -396,7 +396,6 @@ ${\color{blue}\be{1}{2} + \be{2}{2}} \leq 1$ \quad \checkmark%
 \end{enumerate}
 \end{frame}
 
-}
 
 \begin{frame}{\lazyCutlift Example: strengthening $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$}
 
@@ -488,6 +487,8 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 }%
 \end{frame}
 
+}
+
 \ignore{
 
 \begin{frame}{Fractional Cuts (\lazyFractional)}
@@ -513,8 +514,8 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 \centering
 \begin{tikzpicture}[scale=0.95]
     % Axes
-    \draw[->, gray] (0.5,0.5) -- (3.5,0.5) node[right, font=\scriptsize] {$x_2$};
-    \draw[->, gray] (0.5,0.5) -- (0.5,3.5) node[above, font=\scriptsize] {$x_3$};
+    \draw[->, gray] (0.5,0.5) -- (3.5,0.5) node[right, font=\scriptsize] {$\x{2}$};
+    \draw[->, gray] (0.5,0.5) -- (0.5,3.5) node[above, font=\scriptsize] {$\x{3}$};
     % Ticks
     \foreach \v in {1,2,3} {
         \draw[gray] (\v,0.5) -- (\v,0.42) node[below, font=\tiny] {\v};
@@ -549,7 +550,7 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 \smallskip
 {\scriptsize
 \begin{tabular}{c|cc}
- & $x_2$ & $x_3$ \\ \hline
+ & $\x{2}$ & $\x{3}$ \\ \hline
 $r_1$ & 1 & 1 \\
 $r_2$ & 2 & 2 \\
 $r_3$ & 3 & 3 \\
@@ -650,9 +651,9 @@ Choose ${\color{blue}\be{1}{2}}$, expand $\Rightarrow$ cut: ${\color{blue}\be{1}
     \coordinate (v)  at (2.5, 2, 1.5); % v  = outside hull
 
     % Short axes near origin
-    \draw[->, gray!50] (0.3,0.3,0.3) -- (2.2,0.3,0.3) node[anchor=north east, font=\scriptsize] {$x_1$};
-    \draw[->, gray!50] (0.3,0.3,0.3) -- (0.3,1.8,0.3) node[anchor=north west, font=\scriptsize] {$x_2$};
-    \draw[->, gray!50] (0.3,0.3,0.3) -- (0.3,0.3,2.0) node[anchor=south, font=\scriptsize] {$x_3$};
+    \draw[->, gray!50] (0.3,0.3,0.3) -- (2.2,0.3,0.3) node[anchor=north east, font=\scriptsize] {$\x{1}$};
+    \draw[->, gray!50] (0.3,0.3,0.3) -- (0.3,1.8,0.3) node[anchor=north west, font=\scriptsize] {$\x{2}$};
+    \draw[->, gray!50] (0.3,0.3,0.3) -- (0.3,0.3,2.0) node[anchor=south, font=\scriptsize] {$\x{3}$};
     % Faces of tetrahedron (r1, r3, r4, r5) with transparency
     \fill[blue!12, opacity=0.4] (r1) -- (r4) -- (r5) -- cycle;
     \fill[blue!12, opacity=0.4] (r3) -- (r4) -- (r5) -- cycle;
@@ -904,6 +905,11 @@ $\Rightarrow$ \textbf{The two paradigms are complementary; hybridization improve
 \centering
 \includesvg[height=2.5cm]{qr-code}\\
 {\small Code}
+\end{column}
+\begin{column}{0.3\textwidth}
+\centering
+\includesvg[height=2.5cm]{qr-website}\\
+{\small Website}
 \end{column}
 \end{columns}
 \end{frame}
