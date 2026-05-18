@@ -25,6 +25,7 @@
 \newcommand{\quoted}[1]{`#1'}
 \newcommand{\ie}{i.e.\xspace}
 \newcommand{\eg}{e.g.\xspace}
+\newcommand{\Eg}{E.g.\xspace}
 
 % ── Author annotation commands (silenced by default) ─────────────────────────
 \newcommand{\question}[1]{}
@@ -46,7 +47,8 @@
 \newcommand{\be}[2]{\beq{\bevarlookup{#1}}{#2}}
 \newcommand{\besml}[2]{\scriptstyle\be{#1}{#2}}
 
-\newcommand{\citeNoun}[2]{#1~\emph{et al.}~\cite{#2}}
+\newcommand{\etAl}[1]{#1~\emph{et al.}}
+\newcommand{\citeNoun}[2]{\etAl{#1}~\cite{#2}}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}

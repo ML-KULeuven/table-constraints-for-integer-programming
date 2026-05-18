@@ -15,7 +15,21 @@ main.pdf: main.tex prelude.tex references.bib $(SVG_PDFS)
 	$(TEX) main.tex
 	$(TEX) main.tex
 
-presentation.pdf: presentation.tex prelude.tex references.bib
+qr-paper.svg:
+	qrrs -o svg -m 0 "https://www.hbierlee.one/publications/26_cp_cuts.pdf" $@
+
+qr-code.svg:
+	qrrs -o svg -m 0 "https://github.com/ML-KULeuven/table-constraints-for-integer-programming" $@
+
+qr-website.svg:
+	qrrs -o svg -m 0 "https://www.hbierlee.one" $@
+
+qr-slides.svg:
+	qrrs -o svg -m 0 "https://www.hbierlee.one/publications/26_jfpc_slides_cuts.pdf" $@
+
+qrcodes: qr-paper.svg qr-code.svg qr-website.svg qr-slides.svg
+
+presentation.pdf: presentation.tex prelude.tex references.bib qr-paper.svg qr-code.svg qr-website.svg qr-slides.svg
 	$(TEX) presentation.tex
 	bibtex presentation
 	$(TEX) presentation.tex
@@ -34,4 +48,4 @@ greyscale: main.pdf
 
 presentation: presentation.pdf
 
-.PHONY: all clean zip greyscale presentation
+.PHONY: all clean zip greyscale presentation qrcodes

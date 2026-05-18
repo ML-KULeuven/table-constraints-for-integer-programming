@@ -18,6 +18,7 @@
 \usepackage{siunitx}
 \sisetup{detect-weight=true,group-four-digits=true}
 \usepackage{subcaption}
+\usepackage[absolute,overlay]{textpos}
 \usepackage{colortbl}
 \usepackage[nopostdot,nogroupskip,nonumberlist]{glossaries}
 
@@ -26,23 +27,30 @@
 \newcommand{\compare}{base_gurobi-mdd-reduce-dom-incr-nocombined--lazy_gurobi-hybrid_0}
 
 
-\title{Table Constraints for Integer Programming}
-\subtitle{JFPC'26 -- Accepted at CP'26}
-\author{Hendrik Bierlee\inst{1} \and Wout Piessens\inst{1} \and Tias Guns\inst{1} \and Peter J. Stuckey\inst{2,3}}
-\institute{\inst{1} KU Leuven, Belgium \and \inst{2} Monash University, Melbourne, Australia \and \inst{3} OPTIMA ITTC, Melbourne, Australia}
+\title{Table Constraints for Integer Programming (CP'26)}
+\subtitle{JFPC'26}
+\author[\etAl{H. Bierlee}]{Hendrik Bierlee\inst{1} \and Wout Piessens\inst{1} \and Tias Guns\inst{1} \and Peter J. Stuckey\inst{2,3}}
+\institute[KU Leuven, Monash University]{\inst{1} KU Leuven, Belgium \and \inst{2} Monash University, Melbourne, Australia \and \inst{3} OPTIMA ITTC, Melbourne, Australia}
 \date{}
 
-\titlegraphic{
-\includegraphics[height=1.2cm]{erc-logo.pdf}
-% TODO remaining logos
+\titlegraphic{%
+\includegraphics[height=1.2cm]{erc-logo.pdf}\hspace{1cm}%
+\includegraphics[height=1.2cm]{res/kuleuven.png}%
 }
 
 \begin{document}
 
 \begin{frame}
 \titlepage
-\vfill
-{\footnotesize Funded by ERC (Grant No.\ 101002802, CHAT-Opt), FWO-Vlaanderen (G020525N), and the Australian Government through OPTIMA.}
+\begin{textblock*}{12cm}(2cm,8.25cm)
+\centering{\scriptsize Funded by ERC (CHAT-Opt, 101002802), FWO (G020525N), and ARC (OPTIMA).}
+\end{textblock*}
+\begin{textblock*}{2cm}(0.3cm,5.5cm)
+\centering\includesvg[width=1.5cm]{qr-paper}\\[-4pt]{\tiny Paper}
+\end{textblock*}
+\begin{textblock*}{2cm}(13.8cm,5.5cm)
+\centering\includesvg[width=1.5cm]{qr-slides}\\[-4pt]{\tiny Slides}
+\end{textblock*}
 \end{frame}
 
 % \begin{frame}{Outline}
@@ -59,8 +67,8 @@
 	\item Solver-independent modelling languages (\eg MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) solve \gls{cp} models using \gls{ilp} solvers
     \item But there is a large perfomance gap between \gls{ilp} and \eg CP-SAT
     \begin{itemize}
-	    \item Because tables (and other globals) are not encoded well for \gls{ilp}
-	    \item Because we do not use the full \gls{ilp} toolset (\eg lazy row generation)
+	    \item Because globals (\eg table constraints) are not linearized as well
+	    \item Because we do not use the full \gls{ilp} toolset
     \end{itemize}
 \end{itemize}
 
@@ -306,34 +314,74 @@ All three encodings give the same \gls{lp} relaxation on $\hat{x}$, but:
 \end{frame}
 }
 
+\newcommand{\NA}{--}
+\newcommand{\resultheader}{%
+\toprule
+ & {\pst} & {\sat} & {\sol} & {time} & {constraints} & {cuts} \\
+\midrule}
+\newcommand{\resultencoding}[4][]{%
+{#1\baseGleb} & {#1 171} & {#1} & {#1 55} & {#1 851.7} & {#1 8249.3} & {#1 \NA} \\
+{#2\baseBool} & {#2 147} & {#2} & {#2 69} & {#2 771.5} & {#2 25670.4} & {#2 \NA} \\
+{#3\baseMdd} & {#3 154} & {#3} & {#3 67} & {#3 780.8} & {#3 38800.8} & {#3 \NA} \\
+{#4\baseMddDomIncr} & {#4 154} & {#4} & {#4 76} & {#4 728.5} & {#4 30884.2} & {#4 \NA} \\}
+\newcommand{\resultlazy}[4][]{%
+{#1\lazyGenerate} & {#1 174} & {#1} & {#1 36} & {#1 988.6} & {#1 8639.7} & {#1 1857.5} \\
+{#2\lazyFractional} & {#2 174} & {#2} & {#2 36} & {#2 980.9} & {#2 8639.7} & {#2 3202.6} \\
+{#3\lazyCutlift} & {#3 174} & {#3} & {#3 45} & {#3 925.0} & {#3 8639.7} & {#3 847.1} \\
+{#4\lazyAll} & {#4 174} & {#4} & {#4 55} & {#4 871.5} & {#4 8639.7} & {#4 1326.7} \\}
+\newcommand{\resulthybrid}[1][]{%
+{#1\lazyCutoff (1000)} & {#1 174} & {#1} & {#1 79} & {#1 717.5} & {#1 29635.4} & {#1 49.9} \\
+{#1\lazyCutoff (2000)} & {#1 174} & {#1} & {#1\bfseries 80} & {#1\bfseries 715.6} & {#1 29912.8} & {#1 49.9} \\
+{#1\lazyCutoff (3000)} & {#1\bfseries 175} & {#1} & {#1 78} & {#1 716.7} & {#1 30243.3} & {#1 37.3} \\}
+\newcommand{\resulttabular}[1]{%
+\begin{tabular}{lS[table-format=3.0]S[table-format=2.0]S[table-format=2.0]S[table-format=3.1]S[table-format=5.1]S[table-format=4.1]}
+\resultheader
+#1
+\bottomrule
+\end{tabular}}
+\begin{frame}{Results -- Encodings (CSP, 180 instances)}
+
+\begin{description}
+    \item[Benchmarks] XCSP3 competition instances (2022--2025)~\cite{audemard2025proceedings2025xcsp3competition}, 180 CSP instances
+    \item[Solver] Gurobi 13.0.1~\cite{gurobi}, single core, 600s time limit, 8GB memory
+\end{description}
+
+\vfill
+
+\centering
+\small
+\resulttabular{%
+\resultencoding
+{\alt<2->{}{\color{white}}}%
+{\alt<3->{}{\color{white}}}%
+{\alt<4->{}{\color{white}}}%
+}
+
+\smallskip
+{\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
+\end{frame}
+
 %===============================================================================
 \section{Lazy Cut Generation}
 %===============================================================================
 
 \begin{frame}{Lazy Cut Generation for Tables}
 
-Another big \gls{ilp} tool: \textbf{lazy cut generation} (row generation, logic-based Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
+Instead of an eager encoding, we can generated cuts \textbf{lazily} (\ie row generation, logic-based Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
 
 \begin{enumerate}
-	\item Solve without encoding tables, get assignment $\hat{v}$ (\eg $\hat{v} = \sequence{2,2,2}$)
-	\item If $\hat{v}$ violates a table, generate a \textbf{cut} (violating $\hat{v}$ but not the table)
+	\item<1-> Solve without encoding tables, get assignment $\hat{v}$ (\eg $\hat{v} = \sequence{2,2,2}$)
+	\item<2-> If $\hat{v}$ violates a table, generate a \textbf{cut} (violating $\hat{v}$ but not the table)
 		\begin{itemize}
-			\item \eg $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
+			\item \Eg $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
+			\item Note this cut is a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{3}{2}$
 		\end{itemize}
-    \item Repeat until $\hat{v}$ satisfies all tables
+    \item<3-> Repeat until $\hat{v}$ satisfies all tables
 \end{enumerate}
 
-% \bigskip
-% \textbf{Key idea:} Use the Boolean encoding variables $\be{i}{j}$
-% \begin{itemize}
-%     \item Without them, valid cuts may not exist over integer variables alone
-%     \item Cuts are of the form: $\sum_{\col \in X} b_\col \leq |X| - 1$ \quad (a clause / nogood)
-% \end{itemize}
-
-
-Note this cut a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{3}{2}$
-
-Can we generate a strong cut, \eg $\be{1}{2} + \be{2}{2} \leq 1$?
+\onslide<4->{
+Can we generate a stronger cut, \eg $\be{1}{2} + \be{2}{2} \leq 1$?
+}
 
 %
 % \textbf{Example:} Assignment $\hat{v} = (2,2,2)$ is not in the table, so we generate a cut:
@@ -378,6 +426,7 @@ Can we generate a strong cut, \eg $\be{1}{2} + \be{2}{2} \leq 1$?
 \newcommand{\violated}{\cellcolor{red!20}}
 \newcommand{\accepted}{\cellcolor{blue!15}}
 \newcommand{\tblcw}{8mm}% shared column width for Boolean table visualizations
+\newcommand{\gh}[1]{\alt<2->{\textcolor{black!15}{#1}}{#1}}% ghost: fade from slide 2+
 \begin{frame}{\lazyGenerate Example: $\assignment = (2,2,2)$}
 
 \centering
@@ -385,59 +434,75 @@ Can we generate a strong cut, \eg $\be{1}{2} + \be{2}{2} \leq 1$?
 \small
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{c|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering\arraybackslash}p{\tblcw}}
- & $\besml{1}{1}$ & $\besml{1}{2}$ & $\besml{1}{3}$ & $\besml{1}{4}$
- & $\besml{2}{1}$ & $\besml{2}{2}$ & $\besml{2}{3}$
- & $\besml{3}{1}$ & $\besml{3}{2}$ & $\besml{3}{3}$ \\
+ & \gh{$\besml{1}{1}$} & $\besml{1}{2}$ & \gh{$\besml{1}{3}$} & \gh{$\besml{1}{4}$}
+ & \gh{$\besml{2}{1}$} & $\besml{2}{2}$ & \gh{$\besml{2}{3}$}
+ & \gh{$\besml{3}{1}$} & $\besml{3}{2}$ & \gh{$\besml{3}{3}$} \\
 \hline
-% Row 1: be{1}{2}=1 (stays in R at step 2), be{2}{2}=0 (accepted at step 3)
-\only<1>{\violated}\only<2>{\violated}%
+\only<1>{\violated}\only<2>{\violated}\only<3>{\violated}%
 $1$
- & 0 & 1 & 0 & 0
- & 1 & \only<3->{\accepted}0 & 0
- & 1 & 0 & 0 \\
-% Row 2: be{1}{2}=0 (accepted at step 2)
-\only<1>{\violated}%
-$2$
- & 0 & \only<2->{\accepted}0 & 1 & 0
- & 0 & 1 & 0
- & 0 & 1 & 0 \\
-% Row 3: be{1}{2}=0 (accepted at step 2)
-\only<1>{\violated}%
-$3$
- & 0 & \only<2->{\accepted}0 & 0 & 1
- & 0 & \only<3->{\accepted}0 & 1
- & 0 & 0 & 1 \\
-% Row 4: be{1}{2}=0 (accepted at step 2)
-\only<1>{\violated}%
-$4$
- & 1 & \only<2->{\accepted}0 & 0 & 0
- & 0 & 1 & 0
- & 0 & 0 & 1 \\
-% Row 5: be{1}{2}=1 (stays in R at step 2), be{2}{2}=0 (accepted at step 3)
+ & \gh{0} & 1 & \gh{0} & \gh{0}
+ & \gh{1} & \only<4->{\accepted}0 & \gh{0}
+ & \gh{1} & 0 & \gh{0} \\
 \only<1>{\violated}\only<2>{\violated}%
+$2$
+ & \gh{0} & \only<3->{\accepted}0 & \gh{1} & \gh{0}
+ & \gh{0} & 1 & \gh{0}
+ & \gh{0} & 1 & \gh{0} \\
+\only<1>{\violated}\only<2>{\violated}%
+$3$
+ & \gh{0} & \only<3->{\accepted}0 & \gh{0} & \gh{1}
+ & \gh{0} & \only<4->{\accepted}0 & \gh{1}
+ & \gh{0} & 0 & \gh{1} \\
+\only<1>{\violated}\only<2>{\violated}%
+$4$
+ & \gh{1} & \only<3->{\accepted}0 & \gh{0} & \gh{0}
+ & \gh{0} & 1 & \gh{0}
+ & \gh{0} & 0 & \gh{1} \\
+\only<1>{\violated}\only<2>{\violated}\only<3>{\violated}%
 $5$
- & 0 & 1 & 0 & 0
- & 1 & \only<3->{\accepted}0 & 0
- & 0 & 1 & 0 \\
+ & \gh{0} & 1 & \gh{0} & \gh{0}
+ & \gh{1} & \only<4->{\accepted}0 & \gh{0}
+ & \gh{0} & 1 & \gh{0} \\
 \hline
 \violated $\assignment$
- & 0 & 1 & 0 & 0
- & 0 & 1 & 0
- & 0 & 1 & 0 \\
+ & \gh{0} & 1 & \gh{0} & \gh{0}
+ & \gh{0} & 1 & \gh{0}
+ & \gh{0} & 1 & \gh{0} \\
 \end{tabular}
 
 \bigskip
-\only<1>{%
-Cut: $0 \leq -1$ \quad {\small (all rows violated)}%
+\only<1-2>{%
+Cut: $0 \leq -1$ \quad {\small (all rows \colorbox{red!20}{violated})}%
 }%
-\only<2>{%
+\only<3>{%
 Choose $\x{1}$, add $\be{1}{2}$: \quad
 ${\color{blue}\be{1}{2}} \leq 0$ \quad {\small (rows 1,5 still violated)}%
 }%
-\only<3>{%
+\only<4>{%
 Choose $\x{2}$, add $\be{2}{2}$: \quad
 ${\color{blue}\be{1}{2} + \be{2}{2}} \leq 1$ \quad \checkmark%
 }%
+\end{frame}
+
+\begin{frame}{Extensions: \lazyCutlift and \lazyFractional}
+
+\begin{description}[labelwidth=0.3cm]
+	\item<1->[\lazyCutlift] Strengthen valid cut by \textbf{lifting} variables (\textit{without} incrementing RHS)
+
+\medskip
+Input: $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
+
+\onslide<2->{Output: $\be{1}{1} + \be{1}{2} + 2\be{1}{4} + \be{2}{2} + \be{3}{1} + \be{3}{2} \leq 2$}
+
+\bigskip
+\item<3->[\lazyFractional] Generate cuts from \textbf{fractional} LP solutions
+
+\medskip
+Input: $\assignment = \sequence{0, 0.5, 0.5, 0, 0, 1, 0, 0.5, 0.5, 0}$
+
+\onslide<4->{Output: $\be{1}{2} + \be{2}{2} \leq 1$}
+\end{description}
+
 \end{frame}
 
 \ignore{
@@ -800,214 +865,77 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 
 	}
 
-%===============================================================================
-\section{Experimental Evaluation}
-%===============================================================================
-
-\begin{frame}{Experimental Setup}
-\begin{description}
-    \item[Benchmarks] XCSP3 competition instances (2022--2025)~\cite{audemard2025proceedings2025xcsp3competition}\\
-    180 \gls{csp} + 247 \gls{cop} instances with table constraints
-    \item[Solver] Gurobi 13.0.1~\cite{gurobi} (\gls{ilp} solver)
-    \item[Implementation] Python + CPMpy v0.10.0~\cite{guns2019increasing} (loading, linearization, cut generation)
-    \item[Resources] Single core, 600s time limit, 8GB memory limit
-\end{description}
-\bigskip
-\textbf{Experimental questions:}
-\begin{enumerate}
-    \item[\textbf{Q1.}] Impact of each encoding?
-    \item[\textbf{Q2.}] Impact of each cut generation extension?
-    \item[\textbf{Q3.}] When does lazy cut generation become beneficial?
-\end{enumerate}
-\end{frame}
-
-\newcommand{\NA}{--}
-\newcommand{\resultheader}{%
-\toprule
- & {\pst} & {\sat} & {\sol} & {time} & {constraints} & {cuts} \\
-\midrule}
-\newcommand{\resultencoding}{%
-\baseGleb & 171 & {} & 55 & 851.7 & 8249.3 & {\NA} \\
-\baseBool & 147 & {} & 69 & 771.5 & 25670.4 & {\NA} \\
-\baseMddInput & 154 & {} & 67 & 780.8 & 38800.8 & {\NA} \\
-\baseMddDomIncr & 154 & {} & 76 & 728.5 & 30884.2 & {\NA} \\}
-\newcommand{\resultlazy}[1][]{%
-{#1\lazyGenerate} & {#1 174} & {#1} & {#1 36} & {#1 988.6} & {#1 8639.7} & {#1 1857.5} \\
-{#1\lazyFractional} & {#1 174} & {#1} & {#1 36} & {#1 980.9} & {#1 8639.7} & {#1 3202.6} \\
-{#1\lazyCutlift} & {#1 174} & {#1} & {#1 45} & {#1 925.0} & {#1 8639.7} & {#1 847.1} \\
-{#1\lazyAll} & {#1 174} & {#1} & {#1 55} & {#1 871.5} & {#1 8639.7} & {#1 1326.7} \\}
-\newcommand{\resulthybrid}[1][]{%
-{#1\lazyCutoff (1000)} & {#1 174} & {#1} & {#1 79} & {#1 717.5} & {#1 29635.4} & {#1 49.9} \\
-{#1\lazyCutoff (2000)} & {#1 174} & {#1} & {#1\bfseries 80} & {#1\bfseries 715.6} & {#1 29912.8} & {#1 49.9} \\
-{#1\lazyCutoff (3000)} & {#1\bfseries 175} & {#1} & {#1 78} & {#1 716.7} & {#1 30243.3} & {#1 37.3} \\}
-\newcommand{\resulttabular}[1]{%
-\begin{tabular}{lS[table-format=3.0]S[table-format=2.0]S[table-format=2.0]S[table-format=3.1]S[table-format=5.1]S[table-format=4.1]}
-\resultheader
-#1
-\bottomrule
-\end{tabular}}
-\begin{frame}{Results -- \gls{csp} (180 instances)}
+\begin{frame}{Results -- CSP (180 instances)}
 \centering
 \small
 \resulttabular{%
-\resultencoding
+\resultencoding{}{}{}
 \hline
-\alt<2->{\resultlazy}{\resultlazy[\color{white}]}%
-\hline
-\alt<3->{\resulthybrid}{\resulthybrid[\color{white}]}%
+\resultlazy
+{\alt<3->{}{\color{white}}}%
+{\alt<4->{}{\color{white}}}%
+{\alt<5->{}{\color{white}}}%
 }
 
 \smallskip
 {\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
 \end{frame}
 
-\ignore{
+\begin{frame}{Eager vs.\ Lazy -- Scatter Plots}
 
-\begin{frame}{Results -- \gls{cop} (247 instances)}
+\centering
+\begin{figure}
+\centering
+\includesvg[width=\textwidth,height=0.78\textheight,keepaspectratio]{analysis/scatter-CSP-\compare.svg}
+	\caption{\small Solve time [s.]: Eager (top-left) -- Lazy (bottom-right). Light colour = big table}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Results -- CSP (180 instances)}
 \centering
 \small
-\input{analysis/table-cop.tex}
+\resulttabular{%
+\resultencoding{}{}{}
+\hline
+\resultlazy{}{}{}
+\hline
+\resulthybrid
+}
 
 \smallskip
-{\scriptsize pst = posted, sat = feasible, sol = solved/optimal. Time = PAR2 avg [s.]}
+{\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
 \end{frame}
-
-}
-
-\ignore{
-
-\begin{frame}{Q1: Impact of Encodings}
-
-\textbf{\gls{csp} instances:}
-\begin{itemize}
-    \item \baseBool outperforms \baseGleb (nominal variables benefit from direct encoding)
-    \item \baseMddDomIncr outperforms \baseBool by 7 additional solved instances, and \baseMddInput by 9
-    \item Column ordering matters: domain-increasing heuristic helps merge \gls{mdd} nodes
-\end{itemize}
-
-\bigskip
-\textbf{\gls{cop} instances:}
-\begin{itemize}
-    \item Differences are smaller (channelling costs for objectives)
-    \item \baseMddInput and \baseMddDomIncr best for proving optimality
-    \item \baseGleb competitive for finding feasible solutions
-\end{itemize}
-
-\bigskip
-$\Rightarrow$ \textbf{Novel encodings consistently outperform the standard \baseGleb approach}
-\end{frame}
-
-\begin{frame}{Q2: Impact of Cut Generation Extensions}
-
-\textbf{\gls{csp} instances:}
-\begin{itemize}
-    \item \lazyFractional: slight improvement in time
-    \item \lazyCutlift: +11 feasible instances over \lazyGenerate; fewer, stronger cuts
-    \item \lazyAll (both): +11 more instances over \lazyCutlift alone
-\end{itemize}
-
-\bigskip
-\textbf{\gls{cop} instances:}
-\begin{itemize}
-    \item Similar trend: \lazyCutlift has largest impact
-    \item \lazyCutlift proves 5 more optimal than \lazyAll, but \lazyAll finds more feasible
-\end{itemize}
-
-\bigskip
-$\Rightarrow$ \textbf{Cut lifting is the most impactful extension; combining both is best overall}
-\end{frame}
-
-}
-
-
-\begin{frame}{Q3: Eager vs.\ Lazy -- Scatter Plots}
-\begin{columns}[T]
-\begin{column}{0.48\textwidth}
-\centering
-\includesvg[height=0.7\textheight]{analysis/scatter-CSP-\compare.svg}
-\\{\small \gls{csp} instances}
-\end{column}
-\begin{column}{0.48\textwidth}
-\centering
-\includesvg[height=0.7\textheight]{analysis/scatter-COP-\compare.svg}
-\\{\small \gls{cop} instances}
-\end{column}
-\end{columns}
-
-\smallskip
-{\small Solve time [s.]: \lazyAll (x-axis) vs.\ \baseMddDomIncr (y-axis). Colour = median table rows.}
-\end{frame}
-
-\ignore{
-
-\begin{frame}{Q3: Eager vs.\ Lazy -- Complementarity}
-\begin{itemize}
-    \item Globally, eager encodings outperform lazy (especially for optimality proofs)
-    \item But lazy excels at finding \textbf{feasible solutions} and on \textbf{large tables}
-    \item Clear correlation for \gls{csp}: small tables $\to$ eager, large tables $\to$ lazy
-\end{itemize}
-
-\bigskip
-\textbf{Hybrid results:}
-\begin{itemize}
-    \item \lazyCutoffT{2000} strikes the best balance
-    \item For \gls{csp}: all hybrid approaches outperform the best pure encoding
-    \item For \gls{cop}: comparable optimality, more feasible solutions
-    \item Drastically reduces cuts needed while maintaining encoding quality for small tables
-\end{itemize}
-
-
-\bigskip
-$\Rightarrow$ \textbf{The two paradigms are complementary; hybridization improves the state of the art}
-\end{frame}
-
-}
 
 %===============================================================================
 \section{Conclusion}
 %===============================================================================
 
 \begin{frame}{Conclusion \& Future Work}
+\begin{columns}[T]
+\begin{column}{0.72\textwidth}
 \textbf{Summary:}
 \begin{itemize}
-    \item Studied table constraints for \gls{ilp}: eager encodings and lazy cut generation
-    \item Novel Boolean and \gls{mdd}-based encodings outperform standard methods
-    \item Cut generation with fractional cuts + cut lifting improves lazy approach
+    \item Studied eager encodings and lazy cuts for table constraints
+    \item Novel MDD-based encodings outperform standard methods
+    \item Cutlifting and fractional cuts improve cut generation
     \item Hybrid approach combines the strengths of both paradigms
 \end{itemize}
 
 \bigskip
 \textbf{Future work:}
 \begin{itemize}
-    \item Better understanding of which tables suit which method (sparsity, structure)
-    \item Extend to \emph{negative tables} and \emph{smart tables}
-    \item \gls{mdd} construction for negative tables exists; open question for smart tables
+    \item Better understanding of which tables suit which method (\eg~sparsity)
+    \item Extend to \emph{negative, smart, and reified tables}
 \end{itemize}
-\end{frame}
-
-\begin{frame}
-\centering
-\Huge Thank you!
-
-\bigskip
-\Large Questions?
-
-\vfill
-\begin{columns}[c]
-\begin{column}{0.3\textwidth}
-\centering
-\includesvg[height=2.5cm]{qr-paper}\\
-{\small Paper}
 \end{column}
-\begin{column}{0.3\textwidth}
+\begin{column}{0.22\textwidth}
 \centering
-\includesvg[height=2.5cm]{qr-code}\\
-{\small Code}
-\end{column}
-\begin{column}{0.3\textwidth}
-\centering
-\includesvg[height=2.5cm]{qr-website}\\
-{\small Website}
+\includesvg[width=1.6cm]{qr-paper}\\[-2pt]
+{\scriptsize Paper}\\[6pt]
+\includesvg[width=1.6cm]{qr-code}\\[-2pt]
+{\scriptsize Code}\\[6pt]
+\includesvg[width=1.6cm]{qr-website}\\[-2pt]
+{\scriptsize Website}
 \end{column}
 \end{columns}
 \end{frame}
