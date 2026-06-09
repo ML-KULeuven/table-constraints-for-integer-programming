@@ -25,15 +25,19 @@ qr-website.svg:
 	qrrs -o svg -m 0 "https://www.hbierlee.one" $@
 
 qr-slides.svg:
-	qrrs -o svg -m 0 "https://www.hbierlee.one/publications/26_jfpc_slides_cuts.pdf" $@
+	qrrs -o svg -m 0 "https://www.hbierlee.one/publications/26_optima_slides_cuts.pdf" $@
 
 qrcodes: qr-paper.svg qr-code.svg qr-website.svg qr-slides.svg
 
 presentation.pdf: presentation.tex prelude.tex references.bib qr-paper.svg qr-code.svg qr-website.svg qr-slides.svg
-	$(TEX) presentation.tex
-	bibtex presentation
-	$(TEX) presentation.tex
-	$(TEX) presentation.tex
+	$(eval TMPDIR := $(shell mktemp -d))
+	$(TEX) -output-directory=$(TMPDIR) presentation.tex
+	cp references.bib $(TMPDIR)/
+	cd $(TMPDIR) && bibtex presentation
+	$(TEX) -output-directory=$(TMPDIR) presentation.tex
+	$(TEX) -output-directory=$(TMPDIR) presentation.tex
+	cp $(TMPDIR)/presentation.pdf presentation.pdf
+	rm -rf $(TMPDIR)
 
 clean:
 	rm -rf main.aux main.log main.out main.pdf main.bbl main.blg main.vtc main.zip svg-inkscape presentation.aux presentation.log presentation.out presentation.pdf presentation.bbl presentation.blg presentation.nav presentation.snm presentation.toc presentation.synctex.gz

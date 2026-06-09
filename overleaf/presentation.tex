@@ -28,7 +28,7 @@
 
 
 \title{Table Constraints for Integer Programming (CP'26)}
-\subtitle{JFPC'26}
+\subtitle{OPTIMA Seminar, June 10, 2026}
 \author[\etAl{H. Bierlee}]{Hendrik Bierlee\inst{1} \and Wout Piessens\inst{1} \and Tias Guns\inst{1} \and Peter J. Stuckey\inst{2,3}}
 \institute[KU Leuven, Monash University]{\inst{1} KU Leuven, Belgium \and \inst{2} Monash University, Melbourne, Australia \and \inst{3} OPTIMA ITTC, Melbourne, Australia}
 \date{}
@@ -46,10 +46,10 @@
 \centering{\scriptsize Funded by ERC (CHAT-Opt, 101002802), FWO (G020525N), and ARC (OPTIMA).}
 \end{textblock*}
 \begin{textblock*}{2cm}(0.3cm,5.5cm)
-\centering\includesvg[width=1.5cm]{qr-paper}\\[-4pt]{\tiny Paper}
+\centering\includesvg[width=1.5cm]{qr-paper}\\[-4pt]\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\tiny Paper}
 \end{textblock*}
 \begin{textblock*}{2cm}(13.8cm,5.5cm)
-\centering\includesvg[width=1.5cm]{qr-slides}\\[-4pt]{\tiny Slides}
+\centering\includesvg[width=1.5cm]{qr-slides}\\[-4pt]\href{https://www.hbierlee.one/publications/26_optima_slides_cuts.pdf}{\tiny Slides}
 \end{textblock*}
 \end{frame}
 
@@ -67,7 +67,7 @@
 	\item Solver-independent modelling languages (\eg MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) solve \gls{cp} models using \gls{ilp} solvers
     \item But there is a large perfomance gap between \gls{ilp} and \eg CP-SAT
     \begin{itemize}
-	    \item Because globals (\eg table constraints) are not linearized as well
+	    \item Because important global constraints are not linearized as well as they can be
 	    \item Because we do not use the full \gls{ilp} toolset
     \end{itemize}
 \end{itemize}
@@ -96,7 +96,7 @@
 \section{Eager Encodings}
 %===============================================================================
 
-\begin{frame}{Simple Integer Encoding (\baseGleb)}
+\begin{frame}{Integer encoding (\baseGleb)}
 \begin{itemize}
     \item Standard encoding by \citeNoun{Belov}{belov_improved_2016} (default in MiniZinc)
     \item Binary variables $r_i \in \set{0,1}$ for each row $i$, s.t. $r_i = 1$ iff row $i$ chosen
@@ -108,7 +108,7 @@
 \textbf{Table $T$:}\\[0.5em]
 \begin{tabular}{ccc}
 $\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
-2 & 1 & 1 \\
+$\only<2->{\textcolor{blue}{2}}\only<1>{2}$ & 1 & 1 \\
 3 & 2 & 2 \\
 4 & 3 & 3 \\
 1 & 2 & 3 \\
@@ -127,7 +127,7 @@ $\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
 \[
 \begin{array}{rrrrrcl}
  r_1 &+  r_2& +  r_3& + r_4& + r_5 &= &1 \\
-2 r_1& + 3r_2& + 4 r_3& + 1 r_4& + 2r_5 &=& \x{1} \\
+\only<2->{\textcolor{blue}{2 r_1}}\only<1>{2 r_1}& + 3r_2& + 4 r_3& + 1 r_4& + 2r_5 &=& \x{1} \\
 1 r_1& + 2r_2& + 3 r_3& + 2r_4&+ 1 r_5 &=& \x{2} \\
 1 r_1& + 2r_2& + 3 r_3& + 3r_4&+ 2r_5 &=& \x{3}
 \end{array}
@@ -135,37 +135,36 @@ $\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
 \end{column}
 \end{columns}
 
-\vfill
-	For example, if we choose row $1$, then $r_1 = 1$, so $\x{1} = 2 \cdot r_1 + 0 + \ldots + 0 = 2$
+% \vfill
+% 	For example, if we choose row $1$, then $r_1 = 1$, so $\x{1} = 2 \cdot r_1 + 0 + \ldots + 0 = 2$
 
 \end{frame}
 
 
-\begin{frame}{Booleanized Encoding (\baseBool)~\cite{petit}}
-
+\begin{frame}{Booleanized encoding (\baseBool)~\cite{petit}}
 	We booleanize $\x{1}$ with binary variables $\be{1}{j} \in \set{0,1}, j \in D(\x{1})$ such that $\be{1}{j} \Leftrightarrow \x{1} = j$:
-
 	\[
 	\sum_{j \in D(\x{1})} \be{1}{j} = 1, \qquad
 	\sum_{j \in D(\x{1})} j \cdot \be{1}{j} = \x{1}
 	\]
 
+	\[
+		\text{E.g}\quad \be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} = 1,
+	1{\cdot}\be{1}{1} + 2{\cdot}\be{1}{2} + 3{\cdot}\be{1}{3} + 4{\cdot}\be{1}{4} = \x{1}
+	\]
 
-% \begin{itemize}
-% 	\item The row index variable is \textit{nominal}, and so are the column variables $x_i$
-%     % \item Key insight: table variables are often \emph{nominal} -- other constraints reason about $x_i = v$
-%     \item Direct (unary) encoding: binary variable $\be{i}{j}$ for each value $j \in \dom{x_i}$
-%     \item Rewrite integer table into Boolean 01 table $\btable$
-% \end{itemize}
+	\pause
+
+	% \smallskip
+	% \textbf{Why?} Table variables are \textbf{nominal}: other constraints also reason about $x_i = v$, so $\be{i}{j}$ are \textbf{shared} --- fixing one (e.g.\ $\be{1}{2} = 0$) propagates through the table, giving a \textbf{stronger model} than \baseGleb.
 
 	\vfill
 	And booleanize $T$ as a binary table $\btable$:
 	% the table $\texttt{table}(\sequence{\be{1}{1},\be{1}{2}, \ldots, \be{3}{3}}, \btable)$ as well:
-
 \[
 \begin{array}{rrr}
 \x{1} & \x{2} & \x{3} \\ \hline
-2 & 1 & 1 \\
+\only<3->{\textcolor{blue}{2}}\only<1-2>{2} & 1 & 1 \\
 3 & 2 & 2 \\
 4 & 3 & 3 \\
 1 & 2 & 3 \\
@@ -174,7 +173,7 @@ $\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
 \quad \equiv \quad
 \begin{array}{l|rrrr|rrr|rrr}
 &  {\besml{1}{1}} & \besml{1}{2} & \besml{1}{3} & \besml{1}{4} & \besml{2}{1} & \besml{2}{2} & \besml{2}{3} & \besml{3}{1} & \besml{3}{2} & \besml{3}{3} \\ \hline
-&   0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0 \\
+&   \only<3->{\textcolor{blue}{0}}\only<1-2>{0}   & \only<3->{\textcolor{blue}{1}}\only<1-2>{1}   & \only<3->{\textcolor{blue}{0}}\only<1-2>{0}   & \only<3->{\textcolor{blue}{0}}\only<1-2>{0}   & 1   & 0   & 0   & 1   & 0   & 0 \\
 &   0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1   & 0 \\
 &   0   & 0   & 0   & 1   & 0   & 0   & 1   & 0   & 0   & 1 \\
 &   1   & 0   & 0   & 0   & 0   & 1   & 0   & 0   & 0   & 1 \\
@@ -220,7 +219,7 @@ We can reformulate $\btable$ as a reduced Multi-valued Decision Diagram (MDD)~\c
 % \end{array}$}}
 \]
 
-	The MDD can be \textbf{exponentially smaller}, the flow constraints are \textbf{totally unimodular}
+	% The MDD can be \textbf{exponentially smaller}, the flow constraints are \textbf{totally unimodular}
 
 \ignore{
 
@@ -248,46 +247,126 @@ Column ordering of the table matters:
 	}
 \end{frame}
 
-\ignore{
-
-\begin{frame}{\gls{mdd} Flow Encoding -- Example}
+% highlight content blue only on overlay N, plain before/after
+\newcommand{\flashblue}[2]{\temporal<#1>{#2}{\textcolor{blue}{#2}}{#2}}
+% slide 1: src node + all outgoing edges blue
+\newcommand{\mddFlowA}[2]{%
+\xymatrix@C=#1@R=#2{
+   \xyo{\textcolor{blue}{[]}}
+       \ar@[blue][r]^{\textcolor{blue}{\be{1}{2}}}
+       \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
+       \ar@[blue][rdd]^>>>>>>{\textcolor{blue}{\be{1}{4}}}
+       \ar@[blue][rddd]_{\textcolor{blue}{\be{1}{3}}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}}
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{snk} \\
+   & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
+   & \xyo{[4]} \ar[r]_{\be{2}{3}}
+       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}}
+       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+}%
+}
+% slide 2: e_{1,1} + [1] node + e_{[1],2} edge
+\newcommand{\mddFlowB}[2]{%
+\xymatrix@C=#1@R=#2{
+   \xyo{[]}
+       \ar[r]^{\be{1}{2}}
+       \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
+       \ar[rdd]^>>>>>>{\be{1}{4}}
+       \ar[rddd]_{\be{1}{3}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}}
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{snk} \\
+   & \xyo{\textcolor{blue}{[1]}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{[4]} \ar[r]_{\be{2}{3}}
+       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}}
+       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+}%
+}
+% slide 3: e_{[1],2} + [1,2][4,3] node + e_{3,3} edge
+\newcommand{\mddFlowC}[2]{%
+\xymatrix@C=#1@R=#2{
+   \xyo{[]}
+       \ar[r]^{\be{1}{2}}
+       \ar[rd]^{\be{1}{1}}
+       \ar[rdd]^>>>>>>{\be{1}{4}}
+       \ar[rddd]_{\be{1}{3}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}}
+       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{snk} \\
+   & \xyo{[1]} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{[4]} \ar@[blue][r]_{\textcolor{blue}{\be{2}{3}}}
+       & \xyo{\textcolor{blue}{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]}} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}}
+       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+}%
+}
+% slide 4: all incoming edges to snk + snk node blue
+\newcommand{\mddFlowD}[2]{%
+\xymatrix@C=#1@R=#2{
+   \xyo{[]}
+       \ar[r]^{\be{1}{2}}
+       \ar[rd]^{\be{1}{1}}
+       \ar[rdd]^>>>>>>{\be{1}{4}}
+       \ar[rddd]_{\be{1}{3}}
+       & \xyo{[2]} \ar[r]^{\be{2}{1}}
+       & \xyo{[2,1]} \ar@[blue][r]^{\textcolor{blue}{\be{3}{1}}} \ar@/_2pc/@[blue][r]^{\textcolor{blue}{\be{3}{2}}}
+       & \xyoo{\textcolor{blue}{snk}} \\
+   & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
+   & \xyo{[4]} \ar[r]_{\be{2}{3}}
+       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
+   & \xyo{[3]} \ar[r]^{\be{2}{2}}
+       & \xyo{[3,2]} \ar@[blue][ruuu]_{\textcolor{blue}{\be{3}{2}}} \\
+}%
+}
+\begin{frame}{MDD to flow constraints}
 \begin{columns}[T]
 \begin{column}{0.45\textwidth}
 \centering
 \small
 \[
-\mddDiagram{8mm}{7mm}
+\only<1>{\mddFlowA{8mm}{7mm}}%
+\only<2>{\mddFlowB{8mm}{7mm}}%
+\only<3>{\mddFlowC{8mm}{7mm}}%
+\only<4>{\mddFlowD{8mm}{7mm}}
 \]
 \end{column}
 \begin{column}{0.52\textwidth}
 \textbf{Flow constraints:}
 \smallskip
-\small
+\footnotesize
 \[
 \begin{array}{rcl@{~~}l}
-\be{1}{2} &= &\be{2}{1} & \text{node } [2]\\
-\be{2}{1} &= &\be{3}{1} + e_{([2,1],2)} & \text{node } [2,1] \\
-\be{1}{1} &= &e_{([1],2)} & \text{node } [1]\\
-e_{([1],2)} + \be{2}{3} &=& \be{3}{3} & \text{node } [1,2]\!=\![4,3] \\
-\be{1}{4} & = & \be{2}{3} & \text{node } [4] \\
-\be{1}{3} &=& e_{([3],2)}  & \text{node } [3]\\
-e_{([3],2)} &=& e_{([3,2],2)} & \text{node } [3,2]\\[3pt]
-\multicolumn{3}{l}{\be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} = 1} & \text{source}\\
-\multicolumn{3}{l}{e_{([2,1],2)} + \be{3}{1} + \be{3}{3} + e_{([3,2],2)} = 1} & \text{sink}\\[3pt]
-e_{([2,1],2)} + e_{([3,2],2)} & = &\be{3}{2} & \text{channel}\\
-e_{([1],2)} + e_{([3],2)} & = &\be{2}{2} & \text{channel}
+\multicolumn{3}{l}{\flashblue{1}{\be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} = 1}} & \flashblue{1}{\text{src}}\\[3pt]
+\flashblue{2}{\be{1}{1}} &=& \flashblue{2}{e_{([1],2)}} & \flashblue{2}{[1]}\\
+\flashblue{3}{e_{([1],2)} + \be{2}{3}} &=& \flashblue{3}{\be{3}{3}} & \flashblue{3}{[1,2][4,3]} \\[3pt]
+\be{1}{2} &= &\be{2}{1} & [2]\\
+\be{2}{1} &= &\be{3}{1} + e_{([2,1],2)} & [2,1] \\
+\be{1}{4} & = & \be{2}{3} & [4] \\
+\be{1}{3} &=& e_{([3],2)}  & [3]\\
+e_{([3],2)} &=& e_{([3,2],2)} & [3,2]\\[3pt]
+\multicolumn{3}{l}{\flashblue{4}{e_{([2,1],2)} + \be{3}{1} + \be{3}{3} + e_{([3,2],2)} = 1}} & \flashblue{4}{\text{snk}}\\[3pt]
+e_{([1],2)} + e_{([3],2)} & = &\be{2}{2} & \text{channel}\\
+e_{([2,1],2)} + e_{([3,2],2)} & = &\be{3}{2} & \text{channel}
 \end{array}
 \]
 \end{column}
 \end{columns}
 
+	\ignore{
+
 \smallskip
 \begin{itemize}
-    \item Each \gls{mdd} node $\rightarrow$ flow balance constraint (flow in = flow out)
-    \item Source/sink: total flow = 1 (exactly one row active)
-    \item Channel: edge variables $\leftrightarrow$ Boolean encoding variables $\be{i}{j}$
+    \item Each MDD node $\rightarrow$ \textbf{flow balance} constraint (flow in $=$ flow out)
+    \item Source/sink: total flow $= 1$ (exactly one row active)
+    \item \textbf{Channel}: edge variables $\leftrightarrow$ Boolean encoding variables $\be{i}{j}$
 \end{itemize}
+	}
 \end{frame}
+
+\ignore{
 
 
 \begin{frame}{Encoding Comparison -- Theory}
@@ -315,9 +394,21 @@ All three encodings give the same \gls{lp} relaxation on $\hat{x}$, but:
 }
 
 \newcommand{\NA}{--}
+\newcommand{\resultlegend}{%
+\smallskip\par
+{\scriptsize
+\begin{tabular}{@{}ll@{\quad}ll@{}}
+\pst & \#instances posted &
+\sat & \#feasible instances found \\
+\underline{\sol} & \#instances solved &
+time & PAR2 avg [s] \\
+constraints & avg \#constraints added &
+cuts & avg \#cuts generated \\
+\end{tabular}%
+}}
 \newcommand{\resultheader}{%
 \toprule
- & {\pst} & {\sat} & {\sol} & {time} & {constraints} & {cuts} \\
+ & {\pst} & {\sat} & \underline{\sol} & {time} & {constraints} & {cuts} \\
 \midrule}
 \newcommand{\resultencoding}[4][]{%
 {#1\baseGleb} & {#1 171} & {#1} & {#1 55} & {#1 851.7} & {#1 8249.3} & {#1 \NA} \\
@@ -351,14 +442,13 @@ All three encodings give the same \gls{lp} relaxation on $\hat{x}$, but:
 \centering
 \small
 \resulttabular{%
-\resultencoding
-{\alt<2->{}{\color{white}}}%
+\resultencoding[\alt<2->{}{\color{white}}]%
 {\alt<3->{}{\color{white}}}%
 {\alt<4->{}{\color{white}}}%
+{\alt<5->{}{\color{white}}}%
 }
 
-\smallskip
-{\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
+\resultlegend
 \end{frame}
 
 %===============================================================================
@@ -367,21 +457,34 @@ All three encodings give the same \gls{lp} relaxation on $\hat{x}$, but:
 
 \begin{frame}{Lazy Cut Generation for Tables}
 
-Instead of an eager encoding, we can generated cuts \textbf{lazily} (\ie row generation, logic-based Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
+Instead of an eager encoding, we can generate cuts \textbf{lazily} (\ie row generation, logic-based Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
 
 \begin{enumerate}
 	\item<1-> Solve without encoding tables, get assignment $\hat{v}$ (\eg $\hat{v} = \sequence{2,2,2}$)
-	\item<2-> If $\hat{v}$ violates a table, generate a \textbf{cut} (violating $\hat{v}$ but not the table)
+	\item<2-> If $\hat{v}$ violates a table, generate a \textbf{cut}
 		\begin{itemize}
+			\item A valid cut violates $\hat{v}$, but does not violate the table constraint
 			\item \Eg $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
-			\item Note this cut is a logical clause $\neg \be{1}{2} \lor \neg \be{2}{2} \lor \neg \be{3}{2}$
 		\end{itemize}
     \item<3-> Repeat until $\hat{v}$ satisfies all tables
 \end{enumerate}
 
+\vfill
 \onslide<4->{
 Can we generate a stronger cut, \eg $\be{1}{2} + \be{2}{2} \leq 1$?
+
+	}
+
+\vfill
+\onslide<5->{
+	Note: cuts with $\sum n ~ \text{unit terms} \leq n-1$ are logical clauses, \eg:
+
+\[
+	\be{1}{2} + \be{2}{2} \leq 1 \equiv \neg \be{1}{2} \lor \neg \be{2}{2}
+\]
 }
+
+
 
 %
 % \textbf{Example:} Assignment $\hat{v} = (2,2,2)$ is not in the table, so we generate a cut:
@@ -392,41 +495,15 @@ Can we generate a stronger cut, \eg $\be{1}{2} + \be{2}{2} \leq 1$?
 % % Stronger cut: $\be{1}{2} + \be{2}{2} \leq 1$ \quad (also cuts $(2,2,1)$ and $(2,2,3)$)
 \end{frame}
 
-\ignore{
-
-\begin{frame}{The \lazyGenerate Algorithm}
-\begin{columns}[T]
-\begin{column}{0.55\textwidth}
-\begin{itemize}
-    \item Start with the \emph{false} cut ($0 \leq -1$)
-    \item Iteratively relax by adding one partition (integer variable) at a time
-    \item Greedy: choose partition that removes the most rows from $R$
-    \[
-    \arg\min_{l} |R \cap \bigcup_{\col \in C(\assignment, l)} \btable_\col|
-    \]
-    \item Stop when no table rows are violated ($R = \emptyset$)
-\end{itemize}
-\end{column}
-\begin{column}{0.42\textwidth}
-\textbf{Example:} Cut $\assignment = (2,2,2)$
-\begin{enumerate}
-    \item $X{=}\emptyset, \rhs{=}{-}1, R{=}\{1..5\}$
-    \item Choose $\x{1}$: add $\be{1}{2}$\\
-          $\rhs{=}0, R{=}\{1,5\}$
-    \item Choose $\x{2}$: add $\be{2}{2}$\\
-          $\rhs{=}1, R{=}\emptyset$
-    \item Return $\be{1}{2} + \be{2}{2} \leq 1$
-\end{enumerate}
-\end{column}
-\end{columns}
-\end{frame}
-
-}
-
 \newcommand{\violated}{\cellcolor{red!20}}
 \newcommand{\accepted}{\cellcolor{blue!15}}
 \newcommand{\tblcw}{8mm}% shared column width for Boolean table visualizations
 \newcommand{\gh}[1]{\alt<2->{\textcolor{black!15}{#1}}{#1}}% ghost: fade from slide 2+
+\newcommand{\tight}{\cellcolor{orange!25}}
+\newcommand{\fracval}{\cellcolor{yellow!25}}
+\newcommand{\wholeval}{\cellcolor{blue!15}}
+\newcommand{\nonfeasible}{\cellcolor{red!15}}
+\newcommand{\inU}{\cellcolor{green!20}}
 \begin{frame}{\lazyGenerate Example: $\assignment = (2,2,2)$}
 
 \centering
@@ -472,15 +549,15 @@ $5$
 
 \bigskip
 \only<1-2>{%
-Cut: $0 \leq -1$ \quad {\small (all rows \colorbox{red!20}{violated})}%
+	Cut: $0 \leq -1$ \quad (all rows {\color{red}{violated}})
 }%
 \only<3>{%
 Choose $\x{1}$, add $\be{1}{2}$: \quad
-${\color{blue}\be{1}{2}} \leq 0$ \quad {\small (rows 1,5 still violated)}%
+${\color{blue}\be{1}{2}} \leq 0$ \quad {\small (rows 1 and 5 still violated)}%
 }%
 \only<4>{%
 Choose $\x{2}$, add $\be{2}{2}$: \quad
-${\color{blue}\be{1}{2} + \be{2}{2}} \leq 1$ \quad \checkmark%
+${\color{blue}\be{1}{2} + \be{2}{2}} \leq 1$
 }%
 \end{frame}
 
@@ -506,7 +583,6 @@ Input: $\assignment = \sequence{0, 0.5, 0.5, 0, 0, 1, 0, 0.5, 0.5, 0}$
 \end{frame}
 
 \ignore{
-
 \begin{frame}{Extension 2: Cut Lifting (\lazyCutlift)}
 \begin{itemize}
     \item After generating a valid cut, \textbf{strengthen} it by adding more terms
@@ -528,46 +604,50 @@ Input: $\assignment = \sequence{0, 0.5, 0.5, 0, 0, 1, 0, 0.5, 0.5, 0}$
     \item Result: $\be{1}{1} + \be{1}{2} + 2\be{1}{4} + \be{2}{2} + \be{3}{1} + \be{3}{2} \leq 2$
 \end{enumerate}
 \end{frame}
+}
 
 
-\begin{frame}{\lazyCutlift Example: strengthening $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$}
+\begin{frame}{Example: \lazyCutlift on $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$}
+\begin{itemize}
+	\item A \colorbox{orange!25}{tight row} assigns variables such that the cut has LHS $=$ RHS (\eg row 2)
+	\item A \colorbox{orange!25}{tight column} is set to 1 in a tight row (\eg \be{1}{3})
+		\begin{itemize}
+			\item $\be{1}{2} + \be{2}{2} + \be{3}{2} + \mathbf{\be{1}{3}} \leq 2$ would violate row 2!
+		\end{itemize}
+\end{itemize}
 
+% \smallskip
+% After generating a valid cut, \textbf{strengthen} it by adding more terms
 
-After generating a valid cut, \textbf{strengthen} it by adding more terms
-
-\newcommand{\tight}{\cellcolor{orange!25}}
 \let\lifted\tight
 \let\blocked\tight
-\newcommand{\fracval}{\cellcolor{yellow!25}}
-\newcommand{\wholeval}{\cellcolor{blue!15}}
-\newcommand{\nonfeasible}{\cellcolor{red!15}}
-\newcommand{\inU}{\cellcolor{green!20}}
 
 \centering
-\smallskip
+% \smallskip
+\vfill
 \small
 \renewcommand{\arraystretch}{1.15}
 \begin{tabular}{c|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering}p{\tblcw}|>{\centering}p{\tblcw}>{\centering}p{\tblcw}>{\centering\arraybackslash}p{\tblcw}|c}
 % Column headers: grey background when in Xtight
- & \only<4->{\blocked}$\only<4->{\color{blue}}\besml{1}{1}$
+ & \only<5->{\blocked}$\only<5->{\color{blue}}\besml{1}{1}$
  & \blocked$\color{blue}\besml{1}{2}$
  & \blocked$\besml{1}{3}$
  & \only<2->{\blocked}$\only<2->{\color{blue}}\besml{1}{4}$
  & \blocked$\besml{2}{1}$
  & \blocked$\color{blue}\besml{2}{2}$
- & \only<2->{\blocked}$\besml{2}{3}$
- & \only<3->{\blocked}$\only<3->{\color{blue}}\besml{3}{1}$
+ & \only<3->{\blocked}$\besml{2}{3}$
+ & \only<4->{\blocked}$\only<4->{\color{blue}}\besml{3}{1}$
  & \blocked$\color{blue}\besml{3}{2}$
- & \only<2->{\blocked}$\besml{3}{3}$
+ & \only<3->{\blocked}$\besml{3}{3}$
  & $RS$ \\
 \hline
-% Row 1: RS=1. Tight at step 3 (lift be{3}{1}, a=1, RS->2)
-\only<3->{\tight}%
+% Row 1: RS=1. Tight at step 4 (lift be{3}{1}, a=1, RS->2)
+\only<4->{\tight}%
 $1$
  & 0 & \tight 1 & 0 & 0
  & 1 & 0 & 0
- & \only<3->{\tight}1 & 0 & 0
- & \only<1>{1}\only<2>{1}\only<3->{\textbf{2}} \\
+ & \only<4->{\tight}1 & 0 & 0
+ & \only<1-4>{1}\only<5->{\textbf{2}} \\
 % Row 2: RS=2. Tight from the start
 \tight%
 $2$
@@ -575,17 +655,17 @@ $2$
  & 0 & \tight 1 & 0
  & 0 & \tight 1 & 0
  & \textbf{2} \\
-% Row 3: RS=0. Tight at step 2 (lift be{1}{4}, a=2, RS->2)
-\only<2->{\tight}%
+% Row 3: RS=0. Tight at step 3 (lift be{1}{4}, a=2, RS->2)
+\only<3->{\tight}%
 $3$
- & 0 & 0 & 0 & \only<2->{\tight}1
+ & 0 & 0 & 0 & \only<3->{\tight}1
  & 0 & 0 & 1
  & 0 & 0 & 1
- & \only<1>{0}\only<2->{\textbf{2}} \\
-% Row 4: RS=1. Tight at step 4 (lift be{1}{1}, a=1, RS->2)
-\only<4->{\tight}%
+ & \only<1>{0}\only<2>{1}\only<3->{\textbf{2}} \\
+% Row 4: RS=1. Tight at step 5 (lift be{1}{1}, a=1, RS->2)
+\only<5->{\tight}%
 $4$
- & \only<4->{\tight}1 & 0 & 0 & 0
+ & \only<5->{\tight}1 & 0 & 0 & 0
  & 0 & \tight 1 & 0
  & 0 & 0 & 1
  & \only<1-3>{1}\only<4->{\textbf{2}} \\
@@ -601,26 +681,28 @@ $5$
 \bigskip
 \only<1>{%
 Cut: ${\color{blue}\be{1}{2}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{2}} \leq 2$
-\quad {\small Tight rows: \{2,5\}. \colorbox{orange!25}{Tight} columns cannot be lifted.}%
+% \quad {\small Tight rows: \{2,5\}}%
 }%
 \only<2>{%
-Lift ${\color{blue}\be{1}{4}}$ with $a=2$: \quad
+Lift ${\color{blue}\be{1}{4}}$: \quad
+${\color{blue}\be{1}{2}} + {\color{blue}\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{2}} \leq 2$
+}%
+\only<3>{%
+Lift ${\color{blue}\be{1}{4}}$ (again): \quad
 ${\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{2}} \leq 2$
 \quad {\small row 3 now tight}%
 }%
-\only<3>{%
-Lift ${\color{blue}\be{3}{1}}$ with $a=1$: \quad
+\only<4>{%
+Lift ${\color{blue}\be{3}{1}}$: \quad
 ${\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{1}} + {\color{blue}\be{3}{2}} \leq 2$
 \quad {\small row 1 now tight}%
 }%
-\only<4>{%
-Lift ${\color{blue}\be{1}{1}}$ with $a=1$: \quad
+\only<5>{%
+Lift ${\color{blue}\be{1}{1}}$: \quad
 ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + {\color{blue}\be{2}{2}} + {\color{blue}\be{3}{1}} + {\color{blue}\be{3}{2}} \leq 2$
-\quad \checkmark {\small all tight, all \colorbox{orange!25}{blocked}}%
+\quad {\small all rows tight}
 }%
 \end{frame}
-
-}
 
 \ignore{
 
@@ -828,11 +910,8 @@ Choose ${\color{blue}\be{1}{2}}$, expand $\Rightarrow$ cut: ${\color{blue}\be{1}
 {\scriptsize Tetrahedron: $r_2$ lies on edge $r_1$--$r_3$. \quad
 $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \end{frame}
+
 }
-
-
-
-
 
 \ignore{
 
@@ -871,14 +950,13 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \resulttabular{%
 \resultencoding{}{}{}
 \hline
-\resultlazy
-{\alt<3->{}{\color{white}}}%
+\resultlazy[\alt<3->{}{\color{white}}]%
 {\alt<4->{}{\color{white}}}%
 {\alt<5->{}{\color{white}}}%
+{\alt<6->{}{\color{white}}}%
 }
 
-\smallskip
-{\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
+\resultlegend
 \end{frame}
 
 \begin{frame}{Eager vs.\ Lazy -- Scatter Plots}
@@ -902,8 +980,7 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \resulthybrid
 }
 
-\smallskip
-{\scriptsize pst = posted, sat = feasible, sol = solved. Time = PAR2 avg [s.]}
+\resultlegend
 \end{frame}
 
 %===============================================================================
@@ -931,11 +1008,11 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \begin{column}{0.22\textwidth}
 \centering
 \includesvg[width=1.6cm]{qr-paper}\\[-2pt]
-{\scriptsize Paper}\\[6pt]
+\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\scriptsize Paper}\\[6pt]
 \includesvg[width=1.6cm]{qr-code}\\[-2pt]
-{\scriptsize Code}\\[6pt]
+\href{https://github.com/ML-KULeuven/table-constraints-for-integer-programming}{\scriptsize Code}\\[6pt]
 \includesvg[width=1.6cm]{qr-website}\\[-2pt]
-{\scriptsize Website}
+\href{https://www.hbierlee.one}{\scriptsize My website}
 \end{column}
 \end{columns}
 \end{frame}
