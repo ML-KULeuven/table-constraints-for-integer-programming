@@ -46,10 +46,10 @@
 \centering{\scriptsize Funded by ERC (CHAT-Opt, 101002802), FWO (G020525N), and ARC (OPTIMA).}
 \end{textblock*}
 \begin{textblock*}{2cm}(0.3cm,5.5cm)
-\centering\includesvg[width=1.5cm]{qr-paper}\\[-4pt]\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\tiny Paper}
+\centering\includesvg[width=1.5cm]{qr-paper}\\[-4pt]\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\textcolor{blue}{\underline{\tiny Paper}}}
 \end{textblock*}
 \begin{textblock*}{2cm}(13.8cm,5.5cm)
-\centering\includesvg[width=1.5cm]{qr-slides}\\[-4pt]\href{https://www.hbierlee.one/publications/26_optima_slides_cuts.pdf}{\tiny Slides}
+\centering\includesvg[width=1.5cm]{qr-slides}\\[-4pt]\href{https://www.hbierlee.one/publications/26_optima_slides_cuts.pdf}{\textcolor{blue}{\underline{\tiny Slides}}}
 \end{textblock*}
 \end{frame}
 
@@ -61,25 +61,25 @@
 \section{Introduction}
 %===============================================================================
 
-\begin{frame}{Table Constraints in \gls{cp}}
+\begin{frame}{Table Constraints in CP}
 
 \begin{itemize}
-	\item Solver-independent modelling languages (\eg MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) solve \gls{cp} models using \gls{ilp} solvers
-    \item But there is a large perfomance gap between \gls{ilp} and \eg CP-SAT
-    \begin{itemize}
+	\item Solver-independent modelling languages (\eg MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) solve CP models using ILP solvers
+    \item But there is a large perfomance gap between ILP and \eg CP-SAT
+    \begin{enumerate}
 	    \item Because important global constraints are not linearized as well as they can be
-	    \item Because we do not use the full \gls{ilp} toolset
-    \end{itemize}
+	    \item Because we do not use the full ILP toolset
+    \end{enumerate}
 \end{itemize}
 
 % \begin{itemize}
 %     \item Table constraints \texttt{table}($\hat{x}, T$) enforces that variables $\hat{x}$ take values from a row in $T$
-%     \item One of the most well-studied global constraints in \gls{cp}~\cite{GAC,STR2}
+%     \item One of the most well-studied global constraints in CP~\cite{GAC,STR2}
 %     \item Prevalent in configuration, scheduling, in $\approx 25\%$ of all XCSP3 competition instances~\cite{audemard2025proceedings2025xcsp3competition}
 % \end{itemize}
 
 \medskip
-	\textbf{Running example:} \texttt{table}($[\x{1}, \x{2}, \x{3}], T$) with enforces $\hat{x}$ to take one row of $T$:
+	\textbf{Running example:} \texttt{table}($[\x{1}, \x{2}, \x{3}], T$) with enforces the variables to take one row of $T$:
 \[
 \begin{array}{rrr}
 \x{1} & \x{2} & \x{3} \\ \hline
@@ -147,9 +147,8 @@ $\only<2->{\textcolor{blue}{2}}\only<1>{2}$ & 1 & 1 \\
 	\sum_{j \in D(\x{1})} \be{1}{j} = 1, \qquad
 	\sum_{j \in D(\x{1})} j \cdot \be{1}{j} = \x{1}
 	\]
-
 	\[
-		\text{E.g}\quad \be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} = 1,
+		\text{\Eg}\quad \be{1}{1} + \be{1}{2} + \be{1}{3} + \be{1}{4} = 1,
 	1{\cdot}\be{1}{1} + 2{\cdot}\be{1}{2} + 3{\cdot}\be{1}{3} + 4{\cdot}\be{1}{4} = \x{1}
 	\]
 
@@ -182,7 +181,7 @@ $\only<2->{\textcolor{blue}{2}}\only<1>{2}$ & 1 & 1 \\
 \]
 
 % \smallskip
-% Equivalent \gls{lp} relaxation to \baseGleb, but \textbf{stronger model} when binary variables used elsewhere.
+% Equivalent LP relaxation to \baseGleb, but \textbf{stronger model} when binary variables used elsewhere.
 \end{frame}
 
 \begin{frame}{MDD-based Flow Encoding (\baseMdd)}
@@ -230,8 +229,8 @@ We can reformulate $\btable$ as a reduced Multi-valued Decision Diagram (MDD)~\c
 
 
 % \begin{itemize}
-%     \item Encode table as a \textbf{reduced \gls{mdd}}~\cite{DBLP:journals/constraints/ChengY10} with nodes sharing prefixes
-%     \item Encode (possibly exponentially smaller) \gls{mdd} as a (totally unimodular~\cite{ahuja1993network}) \textbf{flow network} (totally unimodular)
+%     \item Encode table as a \textbf{reduced MDD}~\cite{DBLP:journals/constraints/ChengY10} with nodes sharing prefixes
+%     \item Encode (possibly exponentially smaller) MDD as a (totally unimodular~\cite{ahuja1993network}) \textbf{flow network} (totally unimodular)
 % \end{itemize}
 
 \medskip
@@ -355,43 +354,7 @@ e_{([2,1],2)} + e_{([3,2],2)} & = &\be{3}{2} & \text{channel}
 \end{column}
 \end{columns}
 
-	\ignore{
-
-\smallskip
-\begin{itemize}
-    \item Each MDD node $\rightarrow$ \textbf{flow balance} constraint (flow in $=$ flow out)
-    \item Source/sink: total flow $= 1$ (exactly one row active)
-    \item \textbf{Channel}: edge variables $\leftrightarrow$ Boolean encoding variables $\be{i}{j}$
-\end{itemize}
-	}
 \end{frame}
-
-\ignore{
-
-
-\begin{frame}{Encoding Comparison -- Theory}
-\begin{center}
-\begin{tabular}{lccc}
-\toprule
- & \baseGleb & \baseBool & \baseMdd \\
-\midrule
-New variables & $m$ & $m + \sum |D(x_i)|$ & $|EV|$ \\
-Constraints & $k + 1$ & $\sum |D(x_i)| + 1$ & $|VM| + \sum |D(x_i)|$ \\
-\gls{lp} relaxation & \multicolumn{2}{c}{equivalent} & equivalent to \baseBool \\
-Totally unimodular & no & no & \textbf{yes} (flow) \\
-Size vs.\ table & $O(mk)$ & $O(mk)$ & up to \textbf{exp.\ smaller} \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\bigskip
-All three encodings give the same \gls{lp} relaxation on $\hat{x}$, but:
-\begin{itemize}
-    \item \baseBool enables stronger reasoning when binary variables appear elsewhere
-    \item \baseMdd can be exponentially more compact and is totally unimodular
-\end{itemize}
-\end{frame}
-}
 
 \newcommand{\NA}{--}
 \newcommand{\resultlegend}{%
@@ -460,13 +423,13 @@ cuts & avg \#cuts generated \\
 Instead of an eager encoding, we can generate cuts \textbf{lazily} (\ie row generation, logic-based Benders decomposition~\cite{DBLP:journals/ior/Hooker07})
 
 \begin{enumerate}
-	\item<1-> Solve without encoding tables, get assignment $\hat{v}$ (\eg $\hat{v} = \sequence{2,2,2}$)
-	\item<2-> If $\hat{v}$ violates a table, generate a \textbf{cut}
+	\item<2-> Solve without encoding tables, get assignment $\hat{v}$ (\eg $\hat{v} = \sequence{2,2,2}$)
+	\item<3-> If $\hat{v}$ violates a table, generate a \textbf{cut}
 		\begin{itemize}
 			\item A valid cut violates $\hat{v}$, but does not violate the table constraint
 			\item \Eg $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
 		\end{itemize}
-    \item<3-> Repeat until $\hat{v}$ satisfies all tables
+    \item<4-> Repeat until $\hat{v}$ satisfies all tables
 \end{enumerate}
 
 \vfill
@@ -582,31 +545,6 @@ Input: $\assignment = \sequence{0, 0.5, 0.5, 0, 0, 1, 0, 0.5, 0.5, 0}$
 
 \end{frame}
 
-\ignore{
-\begin{frame}{Extension 2: Cut Lifting (\lazyCutlift)}
-\begin{itemize}
-    \item After generating a valid cut, \textbf{strengthen} it by adding more terms
-    \item Add variable $b_{\col'}$ if it doesn't violate any table row
-    \item Key concept: \textbf{tight rows} -- rows where LHS $= \rhs$
-    \begin{itemize}
-        \item Can only lift variables not appearing in any tight row
-        \item New lifts may create new tight rows $\Rightarrow$ iterate
-    \end{itemize}
-    \item Coefficients $a_{\col'} = \min\{\rhs - RS_r : \text{non-tight } r \text{ with } \btable_{r\col'} = 1\}$
-\end{itemize}
-
-\bigskip
-\textbf{Example:} Start with $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$
-\begin{enumerate}
-    \item Lift $\be{1}{4}$ with coefficient 2
-    \item Lift $\be{3}{1}$ with coefficient 1
-    \item Lift $\be{1}{1}$ with coefficient 1
-    \item Result: $\be{1}{1} + \be{1}{2} + 2\be{1}{4} + \be{2}{2} + \be{3}{1} + \be{3}{2} \leq 2$
-\end{enumerate}
-\end{frame}
-}
-
-
 \begin{frame}{Example: \lazyCutlift on $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$}
 \begin{itemize}
 	\item A \colorbox{orange!25}{tight row} assigns variables such that the cut has LHS $=$ RHS (\eg row 2)
@@ -704,13 +642,12 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 }%
 \end{frame}
 
-\ignore{
-
+\newcommand{\fractionalSection}{%
 \begin{frame}{Fractional Cuts (\lazyFractional)}
 \begin{columns}[T]
 \begin{column}{0.62\textwidth}
 \begin{itemize}
-    \item \gls{ilp} solvers can call callbacks on \textbf{fractional \gls{lp} solutions} too
+    \item ILP solvers can call callbacks on \textbf{fractional LP solutions} too
     \item Identify fractional columns not appearing in any feasible row
     \item If such a column exists $\Rightarrow$ use it to seed \lazyGenerate
     \item If not ($U = \emptyset$) $\Rightarrow$ solution may be in the convex hull, skip
@@ -764,13 +701,13 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 
 \smallskip
 {\scriptsize
-\begin{tabular}{c|cc}
- & $\x{2}$ & $\x{3}$ \\ \hline
-$r_1$ & 1 & 1 \\
-$r_2$ & 2 & 2 \\
-$r_3$ & 3 & 3 \\
-$r_4$ & 2 & 3 \\
-$r_5$ & 1 & 2 \\
+\begin{tabular}{c|ccc}
+ & $\x{1}$ & $\x{2}$ & $\x{3}$ \\ \hline
+$r_1$ & 2 & 1 & 1 \\
+$r_2$ & 3 & 2 & 2 \\
+$r_3$ & 4 & 3 & 3 \\
+$r_4$ & 1 & 2 & 3 \\
+$r_5$ & 2 & 1 & 2 \\
 \end{tabular}
 }
 
@@ -910,39 +847,11 @@ Choose ${\color{blue}\be{1}{2}}$, expand $\Rightarrow$ cut: ${\color{blue}\be{1}
 {\scriptsize Tetrahedron: $r_2$ lies on edge $r_1$--$r_3$. \quad
 $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \end{frame}
+}%
 
-}
+% \fractionalSection
 
-\ignore{
 
-\begin{frame}{Hybrid Eager-Lazy Approach (\lazyCutoff)}
-\begin{itemize}
-    \item For each table constraint, choose:
-    \begin{itemize}
-        \item \textbf{Eager} encoding (\gls{mdd}-based) for \emph{small} tables
-        \item \textbf{Lazy} cut generation for \emph{large} tables
-    \end{itemize}
-    \item Threshold based on number of rows (e.g., 1000, 2000, 3000)
-    \item Rationale: large tables are costly to encode, and many rows may be irrelevant
-\end{itemize}
-
-\bigskip
-\begin{center}
-\begin{tikzpicture}[>=Stealth, font=\small]
-\node[draw, rounded corners, fill=blue!10, minimum width=3cm] (small) at (0,0) {Small tables};
-\node[draw, rounded corners, fill=orange!10, minimum width=3cm] (large) at (6,0) {Large tables};
-\node[draw, rounded corners, fill=blue!30] (enc) at (0,-1.2) {\baseMddDomIncr};
-\node[draw, rounded corners, fill=orange!30] (lazy) at (6,-1.2) {\lazyAll};
-\draw[->, thick] (small) -- (enc);
-\draw[->, thick] (large) -- (lazy);
-\node[draw, rounded corners, fill=green!20, minimum width=4cm] (hybrid) at (3,-2.5) {\lazyCutoffT{threshold}};
-\draw[->, thick] (enc) -- (hybrid);
-\draw[->, thick] (lazy) -- (hybrid);
-\end{tikzpicture}
-\end{center}
-\end{frame}
-
-	}
 
 \begin{frame}{Results -- CSP (180 instances)}
 \centering
@@ -1008,11 +917,11 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \begin{column}{0.22\textwidth}
 \centering
 \includesvg[width=1.6cm]{qr-paper}\\[-2pt]
-\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\scriptsize Paper}\\[6pt]
+\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\textcolor{blue}{\underline{\scriptsize Paper}}}\\[6pt]
 \includesvg[width=1.6cm]{qr-code}\\[-2pt]
-\href{https://github.com/ML-KULeuven/table-constraints-for-integer-programming}{\scriptsize Code}\\[6pt]
+\href{https://github.com/ML-KULeuven/table-constraints-for-integer-programming}{\textcolor{blue}{\underline{\scriptsize Code}}}\\[6pt]
 \includesvg[width=1.6cm]{qr-website}\\[-2pt]
-\href{https://www.hbierlee.one}{\scriptsize My website}
+\href{https://www.hbierlee.one}{\textcolor{blue}{\underline{\scriptsize My website}}}
 \end{column}
 \end{columns}
 \end{frame}

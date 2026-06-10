@@ -40,7 +40,7 @@ presentation.pdf: presentation.tex prelude.tex references.bib qr-paper.svg qr-co
 	rm -rf $(TMPDIR)
 
 clean:
-	rm -rf main.aux main.log main.out main.pdf main.bbl main.blg main.vtc main.zip svg-inkscape presentation.aux presentation.log presentation.out presentation.pdf presentation.bbl presentation.blg presentation.nav presentation.snm presentation.toc presentation.synctex.gz
+	rm -rf main.aux main.log main.out main.pdf main.bbl main.blg main.vtc main.zip svg-inkscape presentation.aux presentation.log presentation.out presentation.pdf presentation.bbl presentation.blg presentation.nav presentation.snm presentation.toc presentation.synctex.gz qr-*.svg
 
 zip: main.zip
 
