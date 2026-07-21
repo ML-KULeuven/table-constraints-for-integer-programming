@@ -16,7 +16,7 @@ main.pdf: main.tex prelude.tex references.bib $(SVG_PDFS)
 	$(TEX) main.tex
 
 qr-paper.svg:
-	qrrs -o svg -m 0 "https://www.hbierlee.one/publications/26_cp_cuts.pdf" $@
+	qrrs -o svg -m 0 "https://doi.org/10.4230/LIPIcs.CP.2026.6" $@
 
 qr-code.svg:
 	qrrs -o svg -m 0 "https://github.com/ML-KULeuven/table-constraints-for-integer-programming" $@
@@ -25,7 +25,7 @@ qr-website.svg:
 	qrrs -o svg -m 0 "https://www.hbierlee.one" $@
 
 qr-slides.svg:
-	qrrs -o svg -m 0 "https://www.hbierlee.one/publications/26_optima_slides_cuts.pdf" $@
+	qrrs -o svg -m 0 "https://www.hbierlee.one/publications/26_cp_cuts_slides.pdf" $@
 
 qrcodes: qr-paper.svg qr-code.svg qr-website.svg qr-slides.svg
 

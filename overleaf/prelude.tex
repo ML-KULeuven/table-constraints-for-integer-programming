@@ -120,6 +120,17 @@
 \newcommand{\xyoy}[1]{*++[o][F=]{#1}}
 \newcommand{\xyoo}[1]{*++[o][F=]{#1}}
 
+% ── MDD node labels (shared by \mddDiagram*, \mddFlowA--D) ────────────────────
+\newcommand{\mddNodeRoot}{[]}
+\newcommand{\mddNodeXtwo}{[2]}
+\newcommand{\mddNodeXone}{[1]}
+\newcommand{\mddNodeXfour}{[4]}
+\newcommand{\mddNodeXthree}{[3]}
+\newcommand{\mddNodeXtwoYone}{[2,1]}
+\newcommand{\mddNodeMerge}{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]}
+\newcommand{\mddNodeXthreeYtwo}{[3,2]}
+\newcommand{\mddNodeSnk}{snk}
+
 % ── Algorithm macros ─────────────────────────────────────────────────────────
 \newcommand{\codeBlockDelim}{}
 \newcommand{\tableCon}{\ensuremath{\texttt{table}(\hat{b}, \btable)}}
@@ -159,57 +170,68 @@ $\btable \models \sum_{\col \in X \cup \set{\colLift}} a_\col b_\col \leq \rhs$.
 \newcommand{\thousands}{$10^3$}
 
 % ── Figures ───────────────────────────────────────────────────────────────────
+% Locally thicken xy-pic edges/frames within a group (restored at the closing brace)
+\makeatletter
+\newcommand{\xyThick}{\begingroup\xylinethick@=\dimexpr2\xylinethick@\relax}
+\newcommand{\xyThickEnd}{\endgroup}
+\makeatother
 % MDD diagram for the running example (parameterised by xy spacing)
 \newcommand{\mddDiagram}[2]{% #1 = @C (column sep), #2 = @R (row sep)
+\xyThick
 \xymatrix@C=#1@R=#2{
-   \xyo{[]}
+   \xyo{\mddNodeRoot}
        \ar[r]^{\be{1}{2}}
        \ar[rd]^{\be{1}{1}}
        \ar[rdd]^>>>>>>{\be{1}{4}}
        \ar[rddd]_{\be{1}{3}}
-       & \xyo{[2]} \ar[r]^{\be{2}{1}}
-       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
-       & \xyoo{snk} \\
-   & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
-   & \xyo{[4]} \ar[r]_{\be{2}{3}}
-       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
-   & \xyo{[3]} \ar[r]^{\be{2}{2}}
-       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+       & \xyo{\mddNodeXtwo} \ar[r]^{\be{2}{1}}
+       & \xyo{\mddNodeXtwoYone} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{\mddNodeSnk} \\
+   & \xyo{\mddNodeXone} \ar[rd]^{\be{2}{2}} &  \\
+   & \xyo{\mddNodeXfour} \ar[r]_{\be{2}{3}}
+       & \xyo{\mddNodeMerge} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{\mddNodeXthree} \ar[r]^{\be{2}{2}}
+       & \xyo{\mddNodeXthreeYtwo} \ar[ruuu]_{\be{3}{2}} \\
 }%
+\xyThickEnd
 }
 \newcommand{\mddDiagramHighlight}[2]{% same but with path 1,2,3 highlighted
+\xyThick
 \xymatrix@C=#1@R=#2{
-   \xyo{[]}
+   \xyo{\mddNodeRoot}
        \ar[r]^{\be{1}{2}}
        \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
        \ar[rdd]^>>>>>>{\be{1}{4}}
        \ar[rddd]_{\be{1}{3}}
-       & \xyo{[2]} \ar[r]^{\be{2}{1}}
-       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
-       & \xyoo{snk} \\
-   & \xyo{\textcolor{blue}{[1]}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
-   & \xyo{[4]} \ar[r]_{\be{2}{3}}
-       & \xyo{\textcolor{blue}{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]}} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
-   & \xyo{[3]} \ar[r]^{\be{2}{2}}
-       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+       & \xyo{\mddNodeXtwo} \ar[r]^{\be{2}{1}}
+       & \xyo{\mddNodeXtwoYone} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{\mddNodeSnk} \\
+   & \xyo{\textcolor{blue}{\mddNodeXone}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{\mddNodeXfour} \ar[r]_{\be{2}{3}}
+       & \xyo{\textcolor{blue}{\mddNodeMerge}} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
+   & \xyo{\mddNodeXthree} \ar[r]^{\be{2}{2}}
+       & \xyo{\mddNodeXthreeYtwo} \ar[ruuu]_{\be{3}{2}} \\
 }%
+\xyThickEnd
 }
 \newcommand{\mddDiagramHighlightBoth}[2]{% paths 1,2,3 (blue) and 4,3,3 (red)
+\xyThick
 \xymatrix@C=#1@R=#2{
-   \xyo{[]}
+   \xyo{\mddNodeRoot}
        \ar[r]^{\be{1}{2}}
        \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
        \ar@[red][rdd]^>>>>>>{\textcolor{red}{\be{1}{4}}}
        \ar[rddd]_{\be{1}{3}}
-       & \xyo{[2]} \ar[r]^{\be{2}{1}}
-       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
-       & \xyoo{snk} \\
-   & \xyo{\textcolor{blue}{[1]}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
-   & \xyo{\textcolor{red}{[4]}} \ar@[red][r]_{\textcolor{red}{\be{2}{3}}}
-       & \xyo{\textcolor{violet}{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]}} \ar@[violet][ruu]^{\textcolor{violet}{\be{3}{3}}} \\
-   & \xyo{[3]} \ar[r]^{\be{2}{2}}
-       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+       & \xyo{\mddNodeXtwo} \ar[r]^{\be{2}{1}}
+       & \xyo{\mddNodeXtwoYone} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{\mddNodeSnk} \\
+   & \xyo{\textcolor{blue}{\mddNodeXone}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{\textcolor{red}{\mddNodeXfour}} \ar@[red][r]_{\textcolor{red}{\be{2}{3}}}
+       & \xyo{\textcolor{violet}{\mddNodeMerge}} \ar@[violet][ruu]^{\textcolor{violet}{\be{3}{3}}} \\
+   & \xyo{\mddNodeXthree} \ar[r]^{\be{2}{2}}
+       & \xyo{\mddNodeXthreeYtwo} \ar[ruuu]_{\be{3}{2}} \\
 }%
+\xyThickEnd
 }
 
 % ── Misc ─────────────────────────────────────────────────────────────────────

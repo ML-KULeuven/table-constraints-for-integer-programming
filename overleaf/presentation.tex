@@ -21,6 +21,7 @@
 \usepackage[absolute,overlay]{textpos}
 \usepackage{colortbl}
 \usepackage[nopostdot,nogroupskip,nonumberlist]{glossaries}
+\usepackage{appendixnumberbeamer}
 
 \input{prelude}
 
@@ -28,7 +29,7 @@
 
 
 \title{Table Constraints for Integer Programming (CP'26)}
-\subtitle{OPTIMA Seminar, June 10, 2026}
+\subtitle{CP'26, July 21, 2026}
 \author[\etAl{H. Bierlee}]{Hendrik Bierlee\inst{1} \and Wout Piessens\inst{1} \and Tias Guns\inst{1} \and Peter J. Stuckey\inst{2,3}}
 \institute[KU Leuven, Monash University]{\inst{1} KU Leuven, Belgium \and \inst{2} Monash University, Melbourne, Australia \and \inst{3} OPTIMA ITTC, Melbourne, Australia}
 \date{}
@@ -46,10 +47,10 @@
 \centering{\scriptsize Funded by ERC (CHAT-Opt, 101002802), FWO (G020525N), and ARC (OPTIMA).}
 \end{textblock*}
 \begin{textblock*}{2cm}(0.3cm,5.5cm)
-\centering\includesvg[width=1.5cm]{qr-paper}\\[-4pt]\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\textcolor{blue}{\underline{\tiny Paper}}}
+\centering\includesvg[width=1.5cm]{qr-paper}\\[-4pt]\href{https://doi.org/10.4230/LIPIcs.CP.2026.6}{\textcolor{blue}{\underline{\tiny Paper}}}
 \end{textblock*}
 \begin{textblock*}{2cm}(13.8cm,5.5cm)
-\centering\includesvg[width=1.5cm]{qr-slides}\\[-4pt]\href{https://www.hbierlee.one/publications/26_optima_slides_cuts.pdf}{\textcolor{blue}{\underline{\tiny Slides}}}
+\centering\includesvg[width=1.5cm]{qr-slides}\\[-4pt]\href{https://www.hbierlee.one/publications/26_cp_cuts_slides.pdf}{\textcolor{blue}{\underline{\tiny Slides}}}
 \end{textblock*}
 \end{frame}
 
@@ -61,11 +62,12 @@
 \section{Introduction}
 %===============================================================================
 
-\begin{frame}{Table Constraints in CP}
+\begin{frame}{Motivation}
 
 \begin{itemize}
-	\item Solver-independent modelling languages (\eg MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) solve CP models using ILP solvers
-    \item But there is a large perfomance gap between ILP and \eg CP-SAT
+	\item \textit{Integer Linear Programming} (ILP) solvers like Gurobi are extremely well-developed
+	\item Solver-independent modelling languages (\eg MiniZinc~\cite{minizinc}, CPMpy~\cite{guns2019increasing}) use ILP solvers to solve CP models
+    \item But on CP instances, there is a perfomance gap between ILP and \eg CP-SAT
     \begin{enumerate}
 	    \item Because important global constraints are not linearized as well as they can be
 	    \item Because we do not use the full ILP toolset
@@ -186,7 +188,7 @@ $\only<2->{\textcolor{blue}{2}}\only<1>{2}$ & 1 & 1 \\
 
 \begin{frame}{MDD-based Flow Encoding (\baseMdd)}
 
-We can reformulate $\btable$ as a reduced Multi-valued Decision Diagram (MDD)~\cite{DBLP:journals/constraints/ChengY10}
+We can reformulate $\btable$ as a reduced \textit{Multi-valued Decision Diagram} (MDD)~\cite{DBLP:journals/constraints/ChengY10}
 
 \[
 \vcenter{\hbox{$\begin{array}{rrr}
@@ -251,73 +253,73 @@ Column ordering of the table matters:
 % slide 1: src node + all outgoing edges blue
 \newcommand{\mddFlowA}[2]{%
 \xymatrix@C=#1@R=#2{
-   \xyo{\textcolor{blue}{[]}}
+   \xyo{\textcolor{blue}{\mddNodeRoot}}
        \ar@[blue][r]^{\textcolor{blue}{\be{1}{2}}}
        \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
        \ar@[blue][rdd]^>>>>>>{\textcolor{blue}{\be{1}{4}}}
        \ar@[blue][rddd]_{\textcolor{blue}{\be{1}{3}}}
-       & \xyo{[2]} \ar[r]^{\be{2}{1}}
-       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
-       & \xyoo{snk} \\
-   & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
-   & \xyo{[4]} \ar[r]_{\be{2}{3}}
-       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
-   & \xyo{[3]} \ar[r]^{\be{2}{2}}
-       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+       & \xyo{\mddNodeXtwo} \ar[r]^{\be{2}{1}}
+       & \xyo{\mddNodeXtwoYone} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{\mddNodeSnk} \\
+   & \xyo{\mddNodeXone} \ar[rd]^{\be{2}{2}} &  \\
+   & \xyo{\mddNodeXfour} \ar[r]_{\be{2}{3}}
+       & \xyo{\mddNodeMerge} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{\mddNodeXthree} \ar[r]^{\be{2}{2}}
+       & \xyo{\mddNodeXthreeYtwo} \ar[ruuu]_{\be{3}{2}} \\
 }%
 }
 % slide 2: e_{1,1} + [1] node + e_{[1],2} edge
 \newcommand{\mddFlowB}[2]{%
 \xymatrix@C=#1@R=#2{
-   \xyo{[]}
+   \xyo{\mddNodeRoot}
        \ar[r]^{\be{1}{2}}
        \ar@[blue][rd]^{\textcolor{blue}{\be{1}{1}}}
        \ar[rdd]^>>>>>>{\be{1}{4}}
        \ar[rddd]_{\be{1}{3}}
-       & \xyo{[2]} \ar[r]^{\be{2}{1}}
-       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
-       & \xyoo{snk} \\
-   & \xyo{\textcolor{blue}{[1]}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
-   & \xyo{[4]} \ar[r]_{\be{2}{3}}
-       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar[ruu]^{\be{3}{3}} \\
-   & \xyo{[3]} \ar[r]^{\be{2}{2}}
-       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+       & \xyo{\mddNodeXtwo} \ar[r]^{\be{2}{1}}
+       & \xyo{\mddNodeXtwoYone} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{\mddNodeSnk} \\
+   & \xyo{\textcolor{blue}{\mddNodeXone}} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{\mddNodeXfour} \ar[r]_{\be{2}{3}}
+       & \xyo{\mddNodeMerge} \ar[ruu]^{\be{3}{3}} \\
+   & \xyo{\mddNodeXthree} \ar[r]^{\be{2}{2}}
+       & \xyo{\mddNodeXthreeYtwo} \ar[ruuu]_{\be{3}{2}} \\
 }%
 }
 % slide 3: e_{[1],2} + [1,2][4,3] node + e_{3,3} edge
 \newcommand{\mddFlowC}[2]{%
 \xymatrix@C=#1@R=#2{
-   \xyo{[]}
+   \xyo{\mddNodeRoot}
        \ar[r]^{\be{1}{2}}
        \ar[rd]^{\be{1}{1}}
        \ar[rdd]^>>>>>>{\be{1}{4}}
        \ar[rddd]_{\be{1}{3}}
-       & \xyo{[2]} \ar[r]^{\be{2}{1}}
-       & \xyo{[2,1]} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
-       & \xyoo{snk} \\
-   & \xyo{[1]} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
-   & \xyo{[4]} \ar@[blue][r]_{\textcolor{blue}{\be{2}{3}}}
-       & \xyo{\textcolor{blue}{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]}} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
-   & \xyo{[3]} \ar[r]^{\be{2}{2}}
-       & \xyo{[3,2]} \ar[ruuu]_{\be{3}{2}} \\
+       & \xyo{\mddNodeXtwo} \ar[r]^{\be{2}{1}}
+       & \xyo{\mddNodeXtwoYone} \ar[r]^{\be{3}{1}} \ar@/_2pc/[r]^{\be{3}{2}}
+       & \xyoo{\mddNodeSnk} \\
+   & \xyo{\mddNodeXone} \ar@[blue][rd]^{\textcolor{blue}{\be{2}{2}}} &  \\
+   & \xyo{\mddNodeXfour} \ar@[blue][r]_{\textcolor{blue}{\be{2}{3}}}
+       & \xyo{\textcolor{blue}{\mddNodeMerge}} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
+   & \xyo{\mddNodeXthree} \ar[r]^{\be{2}{2}}
+       & \xyo{\mddNodeXthreeYtwo} \ar[ruuu]_{\be{3}{2}} \\
 }%
 }
 % slide 4: all incoming edges to snk + snk node blue
 \newcommand{\mddFlowD}[2]{%
 \xymatrix@C=#1@R=#2{
-   \xyo{[]}
+   \xyo{\mddNodeRoot}
        \ar[r]^{\be{1}{2}}
        \ar[rd]^{\be{1}{1}}
        \ar[rdd]^>>>>>>{\be{1}{4}}
        \ar[rddd]_{\be{1}{3}}
-       & \xyo{[2]} \ar[r]^{\be{2}{1}}
-       & \xyo{[2,1]} \ar@[blue][r]^{\textcolor{blue}{\be{3}{1}}} \ar@/_2pc/@[blue][r]^{\textcolor{blue}{\be{3}{2}}}
-       & \xyoo{\textcolor{blue}{snk}} \\
-   & \xyo{[1]} \ar[rd]^{\be{2}{2}} &  \\
-   & \xyo{[4]} \ar[r]_{\be{2}{3}}
-       & \xyo{\scriptscriptstyle[1,2] \scriptscriptstyle[4,3]} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
-   & \xyo{[3]} \ar[r]^{\be{2}{2}}
-       & \xyo{[3,2]} \ar@[blue][ruuu]_{\textcolor{blue}{\be{3}{2}}} \\
+       & \xyo{\mddNodeXtwo} \ar[r]^{\be{2}{1}}
+       & \xyo{\mddNodeXtwoYone} \ar@[blue][r]^{\textcolor{blue}{\be{3}{1}}} \ar@/_2pc/@[blue][r]^{\textcolor{blue}{\be{3}{2}}}
+       & \xyoo{\textcolor{blue}{\mddNodeSnk}} \\
+   & \xyo{\mddNodeXone} \ar[rd]^{\be{2}{2}} &  \\
+   & \xyo{\mddNodeXfour} \ar[r]_{\be{2}{3}}
+       & \xyo{\mddNodeMerge} \ar@[blue][ruu]^{\textcolor{blue}{\be{3}{3}}} \\
+   & \xyo{\mddNodeXthree} \ar[r]^{\be{2}{2}}
+       & \xyo{\mddNodeXthreeYtwo} \ar@[blue][ruuu]_{\textcolor{blue}{\be{3}{2}}} \\
 }%
 }
 \begin{frame}{MDD to flow constraints}
@@ -393,7 +395,7 @@ cuts & avg \#cuts generated \\
 #1
 \bottomrule
 \end{tabular}}
-\begin{frame}{Results -- Encodings (CSP, 180 instances)}
+\begin{frame}{Results: Encodings (CSP, 180 instances)}
 
 \begin{description}
     \item[Benchmarks] XCSP3 competition instances (2022--2025)~\cite{audemard2025proceedings2025xcsp3competition}, 180 CSP instances
@@ -545,6 +547,8 @@ Input: $\assignment = \sequence{0, 0.5, 0.5, 0, 0, 1, 0, 0.5, 0.5, 0}$
 
 \end{frame}
 
+\newcommand{\cutliftSection}{
+
 \begin{frame}{Example: \lazyCutlift on $\be{1}{2} + \be{2}{2} + \be{3}{2} \leq 2$}
 \begin{itemize}
 	\item A \colorbox{orange!25}{tight row} assigns variables such that the cut has LHS $=$ RHS (\eg row 2)
@@ -641,6 +645,7 @@ ${\color{blue}\be{1}{1}} + {\color{blue}\be{1}{2}} + {\color{blue}2\be{1}{4}} + 
 \quad {\small all rows tight}
 }%
 \end{frame}
+}
 
 \newcommand{\fractionalSection}{%
 \begin{frame}{Fractional Cuts (\lazyFractional)}
@@ -853,7 +858,7 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 
 
 
-\begin{frame}{Results -- CSP (180 instances)}
+\begin{frame}{Results: CSP (180 instances)}
 \centering
 \small
 \resulttabular{%
@@ -868,17 +873,21 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \resultlegend
 \end{frame}
 
-\begin{frame}{Eager vs.\ Lazy -- Scatter Plots}
+
+\begin{frame}{Conclusion}
+\end{frame}
+
+\begin{frame}{Results: Eager vs.\ Lazy}
 
 \centering
 \begin{figure}
 \centering
 \includesvg[width=\textwidth,height=0.78\textheight,keepaspectratio]{analysis/scatter-CSP-\compare.svg}
-	\caption{\small Solve time [s.]: Eager (top-left) -- Lazy (bottom-right). Light colour = big table}
+	\caption{\small Solve time [s.]: Eager (top-left) vs.\ Lazy (bottom-right). Light colour = big table}
 \end{figure}
 \end{frame}
 
-\begin{frame}{Results -- CSP (180 instances)}
+\begin{frame}{Results (CSP, 180 instances)}
 \centering
 \small
 \resulttabular{%
@@ -917,7 +926,7 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \begin{column}{0.22\textwidth}
 \centering
 \includesvg[width=1.6cm]{qr-paper}\\[-2pt]
-\href{https://www.hbierlee.one/publications/26_cp_cuts.pdf}{\textcolor{blue}{\underline{\scriptsize Paper}}}\\[6pt]
+\href{https://doi.org/10.4230/LIPIcs.CP.2026.6}{\textcolor{blue}{\underline{\scriptsize Paper}}}\\[6pt]
 \includesvg[width=1.6cm]{qr-code}\\[-2pt]
 \href{https://github.com/ML-KULeuven/table-constraints-for-integer-programming}{\textcolor{blue}{\underline{\scriptsize Code}}}\\[6pt]
 \includesvg[width=1.6cm]{qr-website}\\[-2pt]
@@ -931,5 +940,8 @@ $\hat{v}'$: in hull (no cut). \quad $\hat{v}$: outside hull (can be cut).}
 \bibliographystyle{plainurl}
 \bibliography{references}
 \end{frame}
+
+\appendix
+\cutliftSection
 
 \end{document}
